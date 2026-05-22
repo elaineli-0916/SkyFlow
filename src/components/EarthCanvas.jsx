@@ -6,7 +6,7 @@ import { getSubsolarDirection } from "../utils/astro.js";
 
 const EARTH_AXIAL_TILT = THREE.MathUtils.degToRad(23.44);
 
-function EarthCanvas({ snapshot, now, showClouds, showGrid, resetViewSignal }) {
+function EarthCanvas({ snapshot, now, showClouds, showGrid, resetViewSignal, lookUpMode, lookUpSignal, visualCommand }) {
   const sunDirection = useMemo(() => getSubsolarDirection(now), [now]);
   const tiltedSunDirection = useMemo(
     () => sunDirection.clone().applyAxisAngle(new THREE.Vector3(0, 0, 1), -EARTH_AXIAL_TILT).normalize(),
@@ -25,9 +25,23 @@ function EarthCanvas({ snapshot, now, showClouds, showGrid, resetViewSignal }) {
         <Suspense fallback={null}>
           <OrbitalLighting sunDirection={sunDirection} />
           <Stars radius={70} depth={42} count={3200} factor={3.4} saturation={0.35} fade speed={0.18} />
-          <EarthGroup snapshot={snapshot} showClouds={showClouds} showGrid={showGrid} sunDirection={tiltedSunDirection} />
+          <EarthGroup
+            snapshot={snapshot}
+            showClouds={showClouds}
+            showGrid={showGrid}
+            sunDirection={tiltedSunDirection}
+            lookUpMode={lookUpMode}
+            visualCommand={visualCommand}
+          />
           <MoonMarker now={now} />
-          <CameraControls snapshot={snapshot} resetViewSignal={resetViewSignal} />
+          <CameraControls
+            snapshot={snapshot}
+            resetViewSignal={resetViewSignal}
+            lookUpMode={lookUpMode}
+            lookUpSignal={lookUpSignal}
+            visualCommand={visualCommand}
+            sunDirection={tiltedSunDirection}
+          />
         </Suspense>
       </Canvas>
     </div>
@@ -44,7 +58,7 @@ function OrbitalLighting({ sunDirection }) {
   );
 }
 
-function EarthGroup({ snapshot, showClouds, showGrid, sunDirection }) {
+function EarthGroup({ snapshot, showClouds, showGrid, sunDirection, lookUpMode, visualCommand }) {
   const groupRef = useRef();
   const earthRef = useRef();
   const cloudRef = useRef();
@@ -191,12 +205,12 @@ function EarthGroup({ snapshot, showClouds, showGrid, sunDirection }) {
 
     if (markerRef.current) {
       markerRef.current.lookAt(camera.position);
-      markerRef.current.scale.setScalar(0.026 + Math.sin(elapsed * 1.2) * 0.003);
+      markerRef.current.scale.setScalar((lookUpMode ? 0.038 : 0.026) + Math.sin(elapsed * 1.2) * (lookUpMode ? 0.006 : 0.003));
     }
 
     if (markerHaloRef.current) {
       markerHaloRef.current.lookAt(camera.position);
-      markerHaloRef.current.scale.setScalar(0.046 + Math.sin(elapsed * 1.45) * 0.01);
+      markerHaloRef.current.scale.setScalar((lookUpMode ? 0.078 : 0.046) + Math.sin(elapsed * 1.45) * (lookUpMode ? 0.02 : 0.01));
     }
 
     if (gridRef.current) {
@@ -207,6 +221,8 @@ function EarthGroup({ snapshot, showClouds, showGrid, sunDirection }) {
   const markerPosition = useMemo(() => {
     return latLonToVector3(snapshot.latitude, snapshot.longitude, 1.045);
   }, [snapshot.latitude, snapshot.longitude]);
+
+  const isSunlightCommand = visualCommand?.type === "sunlight";
 
   return (
     <group ref={groupRef} rotation={[0, 0, EARTH_AXIAL_TILT]}>
@@ -229,12 +245,13 @@ function EarthGroup({ snapshot, showClouds, showGrid, sunDirection }) {
       </mesh>
       <mesh ref={markerHaloRef} position={markerPosition}>
         <ringGeometry args={[1, 1.42, 64]} />
-        <meshBasicMaterial color="#84ffd8" transparent opacity={0.34} blending={THREE.AdditiveBlending} depthWrite={false} />
+        <meshBasicMaterial color="#84ffd8" transparent opacity={lookUpMode ? 0.58 : 0.34} blending={THREE.AdditiveBlending} depthWrite={false} />
       </mesh>
       <mesh ref={markerRef} position={markerPosition}>
         <ringGeometry args={[1, 1.65, 48]} />
-        <meshBasicMaterial color="#a8ffe6" transparent opacity={0.84} blending={THREE.AdditiveBlending} depthWrite={false} />
+        <meshBasicMaterial color="#a8ffe6" transparent opacity={lookUpMode ? 0.95 : 0.84} blending={THREE.AdditiveBlending} depthWrite={false} />
       </mesh>
+      {isSunlightCommand && <TerminatorEmphasis sunDirection={sunDirection} />}
       <mesh position={markerPosition}>
         <sphereGeometry args={[0.01, 16, 16]} />
         <meshBasicMaterial color="#f7ffee" />
@@ -243,10 +260,12 @@ function EarthGroup({ snapshot, showClouds, showGrid, sunDirection }) {
   );
 }
 
-function CameraControls({ snapshot, resetViewSignal }) {
+function CameraControls({ snapshot, resetViewSignal, lookUpMode, lookUpSignal, visualCommand, sunDirection }) {
   const controlsRef = useRef();
   const { camera } = useThree();
   const [isUserInteracting, setIsUserInteracting] = useState(false);
+  const targetCameraRef = useRef(null);
+  const targetLookAtRef = useRef(new THREE.Vector3(0, 0, 0));
 
   useEffect(() => {
     if (!controlsRef.current || resetViewSignal === 0) return;
@@ -259,6 +278,47 @@ function CameraControls({ snapshot, resetViewSignal }) {
     controlsRef.current.update();
   }, [camera, resetViewSignal, snapshot.latitude, snapshot.longitude]);
 
+  useEffect(() => {
+    if (!controlsRef.current || !lookUpMode) return;
+
+    const surfaceDirection = latLonToVector3(snapshot.latitude, snapshot.longitude, 1)
+      .applyAxisAngle(new THREE.Vector3(0, 0, 1), EARTH_AXIAL_TILT)
+      .normalize();
+
+    targetCameraRef.current = surfaceDirection.clone().multiplyScalar(2.85);
+    targetLookAtRef.current = surfaceDirection.clone().multiplyScalar(0.18);
+    setIsUserInteracting(true);
+  }, [lookUpMode, lookUpSignal, snapshot.latitude, snapshot.longitude]);
+
+  useEffect(() => {
+    if (!controlsRef.current || !visualCommand) return;
+
+    if (visualCommand.type === "night-side") {
+      targetCameraRef.current = sunDirection.clone().multiplyScalar(-4.25);
+      targetLookAtRef.current = new THREE.Vector3(0, 0, 0);
+      setIsUserInteracting(true);
+    }
+
+    if (visualCommand.type === "sunlight") {
+      const edgeDirection = new THREE.Vector3(-sunDirection.z, 0.18, sunDirection.x).normalize();
+      targetCameraRef.current = edgeDirection.multiplyScalar(3.72);
+      targetLookAtRef.current = sunDirection.clone().multiplyScalar(0.15);
+      setIsUserInteracting(true);
+    }
+  }, [sunDirection, visualCommand]);
+
+  useFrame(() => {
+    if (!controlsRef.current || !targetCameraRef.current) return;
+
+    camera.position.lerp(targetCameraRef.current, 0.035);
+    controlsRef.current.target.lerp(targetLookAtRef.current, 0.04);
+    controlsRef.current.update();
+
+    if (camera.position.distanceTo(targetCameraRef.current) < 0.025) {
+      targetCameraRef.current = null;
+    }
+  });
+
   return (
     <OrbitControls
       ref={controlsRef}
@@ -269,7 +329,7 @@ function CameraControls({ snapshot, resetViewSignal }) {
       zoomSpeed={0.45}
       minDistance={2.35}
       maxDistance={6.4}
-      autoRotate={!isUserInteracting}
+      autoRotate={!isUserInteracting && !lookUpMode}
       autoRotateSpeed={0.12}
       onStart={() => {
         setIsUserInteracting(true);
@@ -278,6 +338,30 @@ function CameraControls({ snapshot, resetViewSignal }) {
         setIsUserInteracting(false);
       }}
     />
+  );
+}
+
+function TerminatorEmphasis({ sunDirection }) {
+  const ringRef = useRef();
+
+  useFrame(({ clock }) => {
+    if (!ringRef.current) return;
+    const elapsed = clock.getElapsedTime();
+    ringRef.current.material.opacity = 0.16 + Math.sin(elapsed * 1.6) * 0.045;
+  });
+
+  const quaternion = useMemo(() => {
+    return new THREE.Quaternion().setFromUnitVectors(
+      new THREE.Vector3(0, 0, 1),
+      sunDirection.clone().normalize()
+    );
+  }, [sunDirection]);
+
+  return (
+    <mesh ref={ringRef} quaternion={quaternion}>
+      <torusGeometry args={[1.032, 0.0035, 12, 192]} />
+      <meshBasicMaterial color="#ffd88a" transparent opacity={0.18} blending={THREE.AdditiveBlending} depthWrite={false} />
+    </mesh>
   );
 }
 

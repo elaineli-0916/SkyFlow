@@ -42,8 +42,23 @@ MVP 的目标是在用户打开后的 10 秒内，让地球看起来是活着的
 - 统一的 `EarthTelemetry` 数据快照层
 - 可见的数据来源标签
 - 本地近似太阳和月亮方位角/高度角计算
+- Soundscape Mode 声景系统雏形，支持本地三层音频混音
+- Look Up Mode，本地天空 HUD、用户位置聚焦和环境式天空叙事
+- Earth Command 文本输入，可回答固定天空意图并驱动地球相机动作
 
 ## 已知问题
+
+### Soundscape 本地音频素材
+
+Soundscape 引擎已经实现，但实际可循环播放的音频文件还没有提交。
+
+预期本地文件：
+
+- `public/audio/base-ambient.mp3`
+- `public/audio/night-piano.mp3`
+- `public/audio/wind-cloud.mp3`
+
+在这些文件加入前，UI 和混音逻辑可用，但缺失的音频层不会发声。
 
 ### 地球地理贴图质量
 
@@ -136,6 +151,18 @@ NASA GIBS 可以通过 WMTS/WMS/TMS/XYZ tiles 提供接近实时的卫星影像�
 
 ### 2026-05-23
 
+- 新增 Soundscape Mode，作为本地音频分层系统，包含 base ambient、night piano 和 wind/cloud 三层。
+- 为声景音频层加入平滑 fade in / fade out，避免突然切换。
+- 声景音量会根据云量、风速、太阳高度角、月亮高度角和 Look Up Mode 动态变化。
+- 新增 `public/audio/README.md`，记录需要放入的本地音频文件名。
+- 新增 Look Up Mode，包含低打扰按钮、本地天空 HUD、用户位置聚焦和更明显的 pulse marker。
+- 新增人类可读的天空方向和高度解释，例如 `NE`、`below horizon`、`low above horizon`。
+- 新增 Look Up 环境式叙事，描述月亮方向、云量和本地光照状态。
+- 新增 Earth Command 输入框，占位文案为 `Ask the Earth...`。
+- 新增固定命令意图：月亮、太阳、天空、日落、夜侧和日照。
+- 将 Earth Command 和地球视觉动作连接起来，命令可打开 Look Up Mode 或移动相机到夜侧/日照视角。
+- 为 sunlight 命令新增低调的日夜分界线强调效果。
+- 验证 `npm run build` 通过；Vite 仍有预期内的 Three.js chunk 偏大提示。
 - 通读应用代码，发现 `public/textures` 中已经存在真实地球贴图，但当前地球仍在使用程序化 canvas 纹理。
 - 将 Three.js 地球改为通过 `TextureLoader` 加载本地真实白天、夜晚和云层贴图。
 - 将云层改为使用 `earth-clouds.png` 作为 alpha map，让真实地理贴图保持可见。
@@ -197,3 +224,13 @@ http://localhost:5173/
 ```bash
 npm run build
 ```
+
+## 下一步
+
+- 将三条可循环播放的本地音频文件加入 `public/audio/`，并按实际听感调整各层音量。
+- 在浏览器中做桌面和移动端视觉 QA，重点检查 Look Up HUD、Earth Command 和右侧控制组。
+- 继续优化 Look Up 相机运动，让它更像被引导的轨道靠近，而不是直接重新定位。
+- 只有在确实需要时才在 UI 中加入命令示例，避免界面变成聊天面板。
+- 强化 `Where is the moon?` 的反馈，包括更明显的 HUD 行强调，以及可选的月亮位置关系提示。
+- 在需要时用更准确的天文算法或服务替换当前近似月亮高度角/方位角。
+- 如果生产 bundle 体积成为问题，再考虑对 Three.js / R3F 做代码拆分。

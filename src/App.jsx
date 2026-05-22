@@ -1,8 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
-import { Activity, Cloud, CloudOff, Grid2X2, LocateFixed, Moon, RotateCcw, SunMedium, Waves } from "lucide-react";
+import { Activity, Cloud, CloudOff, Eye, Grid2X2, LocateFixed, Moon, RotateCcw, SunMedium, Waves } from "lucide-react";
 import EarthCanvas from "./components/EarthCanvas.jsx";
+import EarthCommandInput from "./components/EarthCommandInput.jsx";
+import LookUpPanel from "./components/LookUpPanel.jsx";
+import SoundscapeToggle from "./components/SoundscapeToggle.jsx";
 import { getEnvironmentSnapshot } from "./services/earthDataService.js";
+import { resolveEarthCommand } from "./services/earthCommandService.js";
 import { buildNarration } from "./services/narration.js";
+import { useLookUpMode } from "./hooks/useLookUpMode.js";
+import { useSoundscape } from "./hooks/useSoundscape.js";
 import { formatCoordinate, formatDegrees, formatLocalClock, formatMinutes, formatPreciseCoordinate, formatUtcOffset } from "./utils/format.js";
 
 const initialSnapshot = {
@@ -26,6 +32,10 @@ function App() {
   const [showClouds, setShowClouds] = useState(true);
   const [showGrid, setShowGrid] = useState(true);
   const [resetViewSignal, setResetViewSignal] = useState(0);
+  const [visualCommand, setVisualCommand] = useState(null);
+  const [commandResponse, setCommandResponse] = useState("");
+  const lookUp = useLookUpMode(snapshot, now);
+  const soundscape = useSoundscape(snapshot, lookUp.enabled);
 
   useEffect(() => {
     let cancelled = false;
@@ -88,6 +98,9 @@ function App() {
         showClouds={showClouds}
         showGrid={showGrid}
         resetViewSignal={resetViewSignal}
+        lookUpMode={lookUp.enabled}
+        lookUpSignal={lookUp.sequence}
+        visualCommand={visualCommand}
       />
 
       <div className="pointer-events-none absolute inset-0 orbital-vignette" />
@@ -118,6 +131,18 @@ function App() {
             sun alt {formatDegrees(snapshot.telemetry?.solar?.altitude)} / az {formatDegrees(snapshot.telemetry?.solar?.azimuth)}
           </p>
         </div>
+        <button
+          className="control-button look-up-button"
+          type="button"
+          aria-pressed={lookUp.enabled}
+          aria-label={lookUp.enabled ? "Leave Look Up Mode" : "Enter Look Up Mode"}
+          title={lookUp.enabled ? "Leave Look Up Mode" : "Enter Look Up Mode"}
+          onClick={lookUp.toggle}
+        >
+          <Eye size={16} />
+          <span>{lookUp.enabled ? "looking up" : "look up"}</span>
+        </button>
+        <SoundscapeToggle enabled={soundscape.enabled} level={soundscape.level} onToggle={soundscape.toggle} />
         <button
           className="control-button"
           type="button"
@@ -152,7 +177,12 @@ function App() {
         </button>
       </div>
 
+      <LookUpPanel active={lookUp.enabled} sky={lookUp.sky} focus={lookUp.focus} />
+
       <section className="pointer-events-none absolute bottom-0 left-0 right-0 z-10 px-5 pb-5 sm:px-8 sm:pb-8">
+        <div className="pointer-events-auto mb-3 max-w-[520px]">
+          <EarthCommandInput response={commandResponse} onSubmit={handleEarthCommand} />
+        </div>
         <div className="mb-3 flex max-w-[980px] flex-wrap items-center gap-2">
           <div className="geo-chip">
             <LocateFixed size={14} />
@@ -196,6 +226,24 @@ function App() {
       </section>
     </main>
   );
+
+  function handleEarthCommand(command) {
+    const result = resolveEarthCommand(command, snapshot);
+    if (!result) return;
+
+    setCommandResponse(result.response);
+
+    if (result.action === "look-up") {
+      lookUp.open(result.focus);
+    }
+
+    if (result.action === "night-side" || result.action === "sunlight") {
+      setVisualCommand({
+        type: result.action,
+        createdAt: Date.now()
+      });
+    }
+  }
 }
 
 function StatusCell({ icon, label, value }) {

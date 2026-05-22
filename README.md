@@ -42,8 +42,23 @@ Implemented:
 - unified `EarthTelemetry` data snapshot layer
 - visible telemetry source labels
 - local approximate sun and moon azimuth/altitude calculations
+- Soundscape Mode shell with local three-layer audio mixing
+- Look Up Mode with local sky HUD, user-location focus, and ambient sky narration
+- Earth Command text input that can answer fixed sky intents and drive globe camera actions
 
 ## Known Issues
+
+### Soundscape Local Audio Assets
+
+The Soundscape engine is implemented, but the actual loopable audio files are not committed yet.
+
+Expected local files:
+
+- `public/audio/base-ambient.mp3`
+- `public/audio/night-piano.mp3`
+- `public/audio/wind-cloud.mp3`
+
+Until those files are added, the UI and mixing logic remain available, but the browser will not produce sound for missing layers.
 
 ### Earth Geography Texture Quality
 
@@ -136,6 +151,18 @@ Do not make NASA GIBS a hard dependency for the MVP. First use a semi-transparen
 
 ### 2026-05-23
 
+- Added Soundscape Mode as a local audio-layer system with base ambient, night piano, and wind/cloud layers.
+- Added smooth fade in/out behavior for soundscape layers and telemetry-driven target volumes.
+- Soundscape volume now responds to cloud cover, wind speed, sun altitude, moon altitude, and Look Up Mode.
+- Added `public/audio/README.md` documenting the required local audio filenames.
+- Added Look Up Mode with a low-interruption button, local sky HUD, user-location focus, and stronger pulse marker.
+- Added human-readable direction and altitude descriptions for local sky state.
+- Added ambient Look Up narration such as moon direction, cloud cover, and local daylight context.
+- Added Earth Command input with the placeholder `Ask the Earth...`.
+- Added fixed command intents for moon, sun, sky, sunset, night side, and sunlight.
+- Connected Earth Command actions to globe behavior so commands can open Look Up Mode or move the camera to night/sunlight views.
+- Added a subtle sunlight terminator emphasis for the sunlight command.
+- Verified `npm run build` passes; Vite still reports the expected large Three.js chunk warning.
 - Read through the app code and found that real Earth textures already existed in `public/textures`, but the globe was still using procedural canvas textures.
 - Switched the Three.js globe to load local real day, night, and cloud textures through `TextureLoader`.
 - Changed the cloud layer to use `earth-clouds.png` as an alpha map, keeping the real geography visible below it.
@@ -197,3 +224,13 @@ Production build:
 ```bash
 npm run build
 ```
+
+## Next Steps
+
+- Add the three local loopable audio files under `public/audio/` and tune layer volumes by ear.
+- Run visual QA in browser across desktop and mobile sizes for Look Up HUD, Earth Command, and right-side controls.
+- Improve the Look Up camera move so it feels more like a guided orbital approach and less like a direct reposition.
+- Add command examples in the UI only if needed; keep the interface ambient and avoid turning it into a chatbot panel.
+- Add stronger intent feedback for `Where is the moon?`, including a clearer HUD row emphasis and optional moon marker relation.
+- Replace approximate moon altitude/azimuth with a more accurate astronomy calculation or provider when needed.
+- Consider code-splitting Three.js/R3F if production bundle size becomes important.
