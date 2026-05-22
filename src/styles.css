@@ -1,0 +1,180 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  --hairline: rgba(210, 232, 255, 0.18);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  min-height: 100%;
+  margin: 0;
+}
+
+body {
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 45%, rgba(18, 43, 75, 0.36), transparent 42%),
+    radial-gradient(circle at 50% 100%, rgba(4, 18, 28, 0.85), transparent 48%),
+    #02040a;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+.orbital-vignette {
+  background:
+    radial-gradient(circle at 50% 50%, transparent 0 34%, rgba(2, 4, 10, 0.13) 54%, rgba(0, 0, 0, 0.86) 100%),
+    linear-gradient(180deg, rgba(2, 4, 10, 0.2), transparent 42%, rgba(2, 4, 10, 0.54));
+}
+
+.scanline-field {
+  opacity: 0.28;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+  background-size: 86px 86px;
+  mask-image: radial-gradient(circle at center, transparent 0 28%, black 84%);
+}
+
+.glass-strip {
+  border-left: 1px solid var(--hairline);
+  padding: 0.35rem 0 0.35rem 1rem;
+  text-shadow: 0 0 26px rgba(155, 204, 255, 0.32);
+}
+
+.time-card {
+  width: min(16rem, calc(100vw - 2.5rem));
+  border: 0;
+  background: transparent;
+  padding: 0.2rem 0;
+  text-align: right;
+  text-shadow: 0 0 18px rgba(0, 0, 0, 0.82), 0 0 24px rgba(155, 204, 255, 0.24);
+  backdrop-filter: none;
+}
+
+.orbit-controls {
+  display: flex;
+  align-items: flex-end;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.ambient-console {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1px;
+  width: min(980px, 100%);
+  border: 1px solid rgba(210, 232, 255, 0.12);
+  background: rgba(210, 232, 255, 0.1);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.28);
+  backdrop-filter: blur(22px);
+}
+
+.geo-chip {
+  display: inline-flex;
+  max-width: 100%;
+  align-items: center;
+  gap: 0.5rem;
+  border: 1px solid rgba(168, 255, 230, 0.24);
+  background: rgba(5, 20, 24, 0.46);
+  padding: 0.5rem 0.65rem;
+  color: rgba(228, 255, 249, 0.88);
+  box-shadow: 0 0 28px rgba(99, 246, 210, 0.08);
+  backdrop-filter: blur(18px);
+  font-family: IBM Plex Mono, SFMono-Regular, Consolas, monospace;
+  font-size: 0.66rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.geo-chip strong {
+  min-width: 0;
+  color: #f2fffb;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: none;
+}
+
+.geo-chip.subtle {
+  border-color: rgba(210, 232, 255, 0.14);
+  color: rgba(210, 232, 255, 0.58);
+  box-shadow: none;
+}
+
+.control-button {
+  pointer-events: auto;
+  display: inline-flex;
+  min-height: 2.35rem;
+  align-items: center;
+  gap: 0.5rem;
+  border: 1px solid rgba(210, 232, 255, 0.18);
+  background: rgba(5, 13, 24, 0.56);
+  padding: 0 0.75rem;
+  color: rgba(235, 248, 255, 0.82);
+  box-shadow: 0 16px 60px rgba(0, 0, 0, 0.32);
+  backdrop-filter: blur(20px);
+  cursor: pointer;
+  font-family: IBM Plex Mono, SFMono-Regular, Consolas, monospace;
+  font-size: 0.66rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  transition: border-color 180ms ease, color 180ms ease, background 180ms ease, transform 180ms ease;
+}
+
+.control-button:hover {
+  border-color: rgba(168, 255, 230, 0.42);
+  background: rgba(8, 28, 36, 0.68);
+  color: #f5fffc;
+  transform: translateY(-1px);
+}
+
+.control-button:focus-visible {
+  outline: 2px solid rgba(168, 255, 230, 0.72);
+  outline-offset: 3px;
+}
+
+.status-cell {
+  min-width: 0;
+  min-height: 74px;
+  padding: 0.85rem 0.95rem;
+  background:
+    linear-gradient(180deg, rgba(15, 31, 50, 0.5), rgba(4, 10, 20, 0.38)),
+    rgba(4, 10, 20, 0.48);
+}
+
+@media (max-width: 760px) {
+  .ambient-console {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .status-cell {
+    min-height: 68px;
+    padding: 0.75rem;
+  }
+
+  .glass-strip {
+    padding-left: 0.8rem;
+  }
+}
+
+@media (max-width: 420px) {
+  .ambient-console {
+    grid-template-columns: 1fr;
+  }
+}
