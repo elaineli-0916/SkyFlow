@@ -9,6 +9,8 @@ export async function getEnvironmentSnapshot(options = {}) {
     longitude: telemetry.location.longitude,
     locationName: telemetry.location.name,
     locationSource: telemetry.location.source,
+    locationTimezone: telemetry.location.timezone ?? telemetry.timezone ?? null,
+    country: telemetry.location.country ?? null,
     weather: telemetry.weather,
     sunrise: telemetry.solar.sunrise,
     sunset: telemetry.solar.sunset,

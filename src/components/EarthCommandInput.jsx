@@ -1,7 +1,7 @@
 import { Image, Mic, Send, Square, X } from "lucide-react";
 import { useRef, useState } from "react";
 
-function EarthCommandInput({ response, onSubmit, busy }) {
+function EarthCommandInput({ onSubmit, busy }) {
   const [value, setValue] = useState("");
   const [attachments, setAttachments] = useState([]);
   const [voiceState, setVoiceState] = useState("idle");
@@ -140,7 +140,6 @@ function EarthCommandInput({ response, onSubmit, busy }) {
           ))}
         </div>
       )}
-      {response && <p className="earth-command-response">{response}</p>}
     </div>
   );
 }

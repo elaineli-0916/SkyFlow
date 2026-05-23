@@ -135,33 +135,19 @@ export function createSoundscapeEngine() {
   };
 }
 
-export function getSoundscapeTargets(snapshot, lookUpMode, now = new Date()) {
-  const localHour = getLocalHour(now, snapshot.longitude);
+export function getSoundscapeTargets(snapshot, now = new Date()) {
+  const localHour = getLocalHour(now, snapshot.longitude, snapshot.locationTimezone);
   const dayEnergy = getDayEnergy(localHour);
   const nightEnergy = 1 - dayEnergy;
-  const proximity = lookUpMode ? 1.12 : 1;
 
   return {
-    bachDay: dayEnergy * proximity,
-    thaisNight: nightEnergy * proximity
+    bachDay: dayEnergy,
+    thaisNight: nightEnergy
   };
 }
 
 function clamp01(value) {
   return Math.min(Math.max(value, 0), 1);
-}
-
-function getLocalHour(date, longitude) {
-  const offsetMinutes = typeof longitude === "number" && !Number.isNaN(longitude)
-    ? Math.round((longitude / 15) * 60)
-    : 0;
-  const localDate = new Date(date.getTime() + offsetMinutes * 60000);
-
-  return (
-    localDate.getUTCHours() +
-    localDate.getUTCMinutes() / 60 +
-    localDate.getUTCSeconds() / 3600
-  );
 }
 
 function getDayEnergy(localHour) {
@@ -174,3 +160,4 @@ function smoothstep(edge0, edge1, value) {
   const t = clamp01((value - edge0) / (edge1 - edge0));
   return t * t * (3 - 2 * t);
 }
+import { getLocalHour } from "../utils/format.js";

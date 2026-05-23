@@ -41,7 +41,7 @@ The backend asks the model to return compact JSON:
 {
   "text": "A short natural answer.",
   "actions": [
-    { "type": "open_look_up" }
+    { "type": "set_mode", "mode": "observe" }
   ],
   "memoriesToSave": []
 }
@@ -53,15 +53,31 @@ If the model returns plain text or malformed JSON, the backend falls back to a s
 
 The model may suggest only these actions:
 
-- `open_look_up`
-- `focus_moon`
-- `focus_sun`
 - `focus_photo_marker`
 - `show_night_side`
 - `show_sunlight`
 - `set_mode`
 
 The frontend executes only allowlisted actions. The model should not directly manipulate UI state.
+
+## Ask to Observe Transition
+
+Ask mode should not jump to Observe after every natural-language answer. Use `set_mode: observe` only when the answer is better shown through spatial telemetry, sky position, sunlight, clouds, or local observation data.
+
+Do not jump to Observe for:
+
+- Ordinary conversation, explanations, greetings, follow-ups, or fallback help.
+- Image-inspection questions after an upload, such as "what is this", "what is in this image", "what kind of cloud is this", or "这是什么云".
+- Questions about the content of a photo, the type of cloud in an image, or an observed phenomenon inside the uploaded image rather than the user's live local sky.
+- Image-only submissions without an explicit request to observe the local sky.
+
+When Ask does move into Observe, the transition should feel like the Earth is guiding the user to the answer, not like the app is switching tabs. Treat the handoff as a three-step interaction:
+
+1. First, answer briefly inside Ask with an immediate handoff line, such as "Let me show you where the moon is relative to your sky." or "I will take you to the cloud field above your location."
+2. Then transition into Observe with choreography: the Earth subtly zooms or rotates toward the relevant location, the requested data fades in, the top mode indicator slides from Ask to Observe, and the narration updates in sync.
+3. Once Observe is visible, highlight the information that answered the question for 1-2 seconds. Moon questions should glow the Moon Path / Moon Altitude area, sun questions should glow Sun Path / sunlight data, and cloud or weather questions should glow Weather / cloud-density data.
+
+The mode indicator should confirm the journey after it begins; it should not be the only visible sign of change. The user should feel "SkyFlow is taking me to see it," not "my chat response opened another page."
 
 ## Local Fallback Rules
 

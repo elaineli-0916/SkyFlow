@@ -1,4 +1,4 @@
-import { azimuthToDirection, describeAltitude } from "./lookUpService.js";
+import { azimuthToDirection, describeAltitude } from "./skyDescriptionService.js";
 
 export function resolveEarthCommand(input, snapshot, history = [], attachments = []) {
   const normalized = input.trim().toLowerCase();
@@ -9,9 +9,8 @@ export function resolveEarthCommand(input, snapshot, history = [], attachments =
   if (!normalized && attachments.length > 0) {
     return {
       intent: "attachment",
-      action: "look-up",
-      focus: "sky",
-      response: "I can see the attachment is here, but the model is offline. I will keep the sky open while we wait for the API."
+      action: "answer",
+      response: "I can see the attachment is here, but the model is offline. I will keep the conversation open while we wait for the API."
     };
   }
 
@@ -56,9 +55,10 @@ export function resolveEarthCommand(input, snapshot, history = [], attachments =
     const altitude = describeAltitude(lunar.altitude);
     return {
       intent: "moon",
-      action: "look-up",
+      action: "set-mode",
+      mode: "observe",
       focus: "moon",
-      response: `The moon is ${altitude} toward ${direction}. I am turning Earth toward your sky.`
+      response: `The moon is ${altitude} toward ${direction}. I am opening the moon telemetry on the right.`
     };
   }
 
@@ -67,9 +67,10 @@ export function resolveEarthCommand(input, snapshot, history = [], attachments =
     const altitude = describeAltitude(solar.altitude);
     return {
       intent: "sun",
-      action: "look-up",
+      action: "set-mode",
+      mode: "observe",
       focus: "sun",
-      response: `The sun is ${altitude} toward ${direction}; its edge is setting the tone of your local sky.`
+      response: `The sun is ${altitude} toward ${direction}; I am opening the local sunlight telemetry.`
     };
   }
 
@@ -77,18 +78,20 @@ export function resolveEarthCommand(input, snapshot, history = [], attachments =
     const cloudCover = snapshot.weather?.cloudCover;
     return {
       intent: "sky",
-      action: "look-up",
-      focus: "sky",
+      action: "set-mode",
+      mode: "observe",
+      focus: "weather",
       response: cloudCover == null
-        ? "Your sky is being estimated locally. I will bring the window closer."
-        : `Your sky is carrying about ${Math.round(cloudCover)}% cloud cover. I will bring the window closer.`
+        ? "Your sky is being estimated locally. I will show the quiet telemetry layer."
+        : `Your sky is carrying about ${Math.round(cloudCover)}% cloud cover. I will show the quiet telemetry layer.`
     };
   }
 
   if (includesAny(normalized, ["when is sunset", "sunset"])) {
     return {
       intent: "sunset",
-      action: "look-up",
+      action: "set-mode",
+      mode: "observe",
       focus: "sun",
       response: snapshot.sunset
         ? `Sunset is the next warm edge in the local day. I have marked the sun altitude for you.`
@@ -117,16 +120,14 @@ export function resolveEarthCommand(input, snapshot, history = [], attachments =
   if (includesAny(normalized, ["again", "more", "继续", "再说", "还有呢"]) && previousTurn) {
     return {
       intent: "continue",
-      action: "look-up",
-      focus: "sky",
+      action: "answer",
       response: `Continuing from the last turn: ${previousTurn.assistantText || "I will keep the sky context open and stay with this thread."}`
     };
   }
 
   return {
     intent: "unknown",
-    action: "look-up",
-    focus: "sky",
+    action: "answer",
     response: "The model is offline, so I am using local rules. Try asking about the moon, sun, sunset, night side, sunlight, photos, or modes."
   };
 }

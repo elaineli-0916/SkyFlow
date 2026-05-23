@@ -24,6 +24,11 @@ export function buildEarthContext(body, memories = []) {
       moonAltitude: lunar.altitude ?? null,
       moonAzimuth: lunar.azimuth ?? null,
       moonPhase: lunar.phase ?? body.moonPhase ?? null,
+      moonrise: lunar.moonrise ?? null,
+      moonset: lunar.moonset ?? null,
+      moonMeridian: lunar.meridian ?? null,
+      moonMeridianAltitude: lunar.meridianAltitude ?? null,
+      moonProvider: lunar.provider ?? null,
       sunrise: solar.sunrise ?? body.sunrise ?? null,
       sunset: solar.sunset ?? body.sunset ?? null
     },

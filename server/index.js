@@ -2,6 +2,7 @@ import http from "node:http";
 import { URL } from "node:url";
 import { getAsrHealth, handleAsrTranscribe } from "./routes/asr.js";
 import { handleEarthChat } from "./routes/earthChat.js";
+import { handleTimeAndDateMoon } from "./routes/moon.js";
 import { loadEnvFile } from "./services/envService.js";
 import { getConfiguredQwenModel } from "./services/qwenService.js";
 import { send } from "./services/responseService.js";
@@ -26,6 +27,11 @@ const server = http.createServer(async (request, response) => {
 
     if (request.method === "POST" && url.pathname === "/api/asr/transcribe") {
       await handleAsrTranscribe(request, response);
+      return;
+    }
+
+    if (request.method === "GET" && url.pathname === "/api/moon/timeanddate") {
+      await handleTimeAndDateMoon(request, response, url);
       return;
     }
 

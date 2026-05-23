@@ -2,7 +2,7 @@ function EarthConversationLog({ turns }) {
   if (turns.length === 0) {
     return (
       <div className="earth-conversation-log empty">
-        <p>Ask about the moon, sunlight, a photo marker, or send an image/audio note.</p>
+        <p>Ask about the moon, sunlight, or a photo memory.</p>
       </div>
     );
   }

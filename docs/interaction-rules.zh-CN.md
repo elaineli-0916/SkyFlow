@@ -41,7 +41,7 @@ Ask 模式按这个顺序处理：
 {
   "text": "A short natural answer.",
   "actions": [
-    { "type": "open_look_up" }
+    { "type": "set_mode", "mode": "observe" }
   ],
   "memoriesToSave": []
 }
@@ -53,15 +53,31 @@ Ask 模式按这个顺序处理：
 
 模型只能建议以下动作：
 
-- `open_look_up`
-- `focus_moon`
-- `focus_sun`
 - `focus_photo_marker`
 - `show_night_side`
 - `show_sunlight`
 - `set_mode`
 
 前端只执行 allowlist 中的动作。模型不能直接操控 UI state。
+
+## Ask 到 Observe 的过渡
+
+Ask 模式不要在每一次自然语言回答后都跳到 Observe。只有当答案更适合通过空间 telemetry、天空位置、日照、云层或本地观测数据展示时，才使用 `set_mode: observe`。
+
+以下情况不要跳 Observe，要留在 Ask 内回答：
+
+- 普通聊天、解释、问候、追问或 fallback 帮助。
+- 上传图片后的识别/描述问题，例如“这是什么”“这张图里有什么”“这是什么云”“这属于什么云”。
+- 用户在问图片内容、云的类型、照片里的现象，而不是要求查看本地天空或实时云层。
+- 只有图片附件、没有明确观察本地天空的指令。
+
+当 Ask 需要进入 Observe 时，过渡应该像是地球正在带用户去看答案，而不是应用在切 tab。这个 handoff 按三步处理：
+
+1. 先在 Ask 内给一句即时回应，例如 `Let me show you where the moon is relative to your sky.` 或 `我带你看一下它现在在你天空中的位置。`
+2. 再用有编排感的动画进入 Observe：地球轻微放大或旋转到相关位置，请求的数据先淡入，顶部模式指示从 Ask 滑到 Observe，narration 同步更新。
+3. Observe 可见后，把真正回答问题的信息高亮 1-2 秒。月亮问题高亮 Moon Path / Moon Altitude，太阳问题高亮 Sun Path / 日照数据，云层或天气问题高亮 Weather / cloud-density 数据。
+
+模式指示应该是在旅程开始后确认变化，而不是唯一的变化提示。用户应该感觉到“SkyFlow 正在带我去看”，而不是“聊天回答打开了另一个页面”。
 
 ## 本地 Fallback 规则
 

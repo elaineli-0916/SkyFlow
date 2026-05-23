@@ -6,7 +6,16 @@ export function formatClock(date) {
   }).format(date);
 }
 
-export function formatLocalClock(date, longitude) {
+export function formatLocalClock(date, longitude, timeZone) {
+  if (timeZone) {
+    return new Intl.DateTimeFormat(undefined, {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      timeZone
+    }).format(date);
+  }
+
   if (typeof longitude !== "number" || Number.isNaN(longitude)) {
     return formatClock(date);
   }
@@ -22,11 +31,37 @@ export function formatLocalClock(date, longitude) {
   }).format(localDate);
 }
 
-export function formatUtcOffset(longitude) {
+export function formatUtcOffset(longitude, timeZone) {
+  if (timeZone) return timeZone.replace("_", " ");
   if (typeof longitude !== "number" || Number.isNaN(longitude)) return "UTC";
   const offset = Math.round((longitude / 15) * 2) / 2;
   const sign = offset >= 0 ? "+" : "-";
   return `UTC${sign}${Math.abs(offset).toFixed(offset % 1 === 0 ? 0 : 1)}`;
+}
+
+export function getLocalHour(date, longitude, timeZone) {
+  if (timeZone) {
+    const parts = new Intl.DateTimeFormat("en-US", {
+      hour: "numeric",
+      minute: "numeric",
+      second: "numeric",
+      hour12: false,
+      timeZone
+    }).formatToParts(date);
+    const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+    return Number(values.hour) + Number(values.minute ?? 0) / 60 + Number(values.second ?? 0) / 3600;
+  }
+
+  const offsetMinutes = typeof longitude === "number" && !Number.isNaN(longitude)
+    ? Math.round((longitude / 15) * 60)
+    : 0;
+  const localDate = new Date(date.getTime() + offsetMinutes * 60000);
+
+  return (
+    localDate.getUTCHours() +
+    localDate.getUTCMinutes() / 60 +
+    localDate.getUTCSeconds() / 3600
+  );
 }
 
 export function formatCoordinate(value, kind) {

@@ -6,7 +6,7 @@ import { getSubsolarDirection } from "../utils/astro.js";
 
 const EARTH_AXIAL_TILT = THREE.MathUtils.degToRad(23.44);
 
-function EarthCanvas({ snapshot, now, showClouds, showGrid, resetViewSignal, lookUpMode, lookUpSignal, visualCommand, photoMarkers = [] }) {
+function EarthCanvas({ snapshot, now, showClouds, showGrid, resetViewSignal, mode, visualCommand, photoMarkers = [], onPhotoPreviewChange }) {
   const sunDirection = useMemo(() => getSubsolarDirection(now), [now]);
   const tiltedSunDirection = useMemo(
     () => sunDirection.clone().applyAxisAngle(new THREE.Vector3(0, 0, 1), -EARTH_AXIAL_TILT).normalize(),
@@ -30,16 +30,15 @@ function EarthCanvas({ snapshot, now, showClouds, showGrid, resetViewSignal, loo
             showClouds={showClouds}
             showGrid={showGrid}
             sunDirection={tiltedSunDirection}
-            lookUpMode={lookUpMode}
             visualCommand={visualCommand}
             photoMarkers={photoMarkers}
+            onPhotoPreviewChange={onPhotoPreviewChange}
           />
           <MoonMarker now={now} />
           <CameraControls
             snapshot={snapshot}
             resetViewSignal={resetViewSignal}
-            lookUpMode={lookUpMode}
-            lookUpSignal={lookUpSignal}
+            mode={mode}
             visualCommand={visualCommand}
             sunDirection={tiltedSunDirection}
           />
@@ -59,7 +58,7 @@ function OrbitalLighting({ sunDirection }) {
   );
 }
 
-function EarthGroup({ snapshot, showClouds, showGrid, sunDirection, lookUpMode, visualCommand, photoMarkers }) {
+function EarthGroup({ snapshot, showClouds, showGrid, sunDirection, visualCommand, photoMarkers, onPhotoPreviewChange }) {
   const groupRef = useRef();
   const earthRef = useRef();
   const cloudRef = useRef();
@@ -206,12 +205,14 @@ function EarthGroup({ snapshot, showClouds, showGrid, sunDirection, lookUpMode, 
 
     if (markerRef.current) {
       markerRef.current.lookAt(camera.position);
-      markerRef.current.scale.setScalar((lookUpMode ? 0.038 : 0.026) + Math.sin(elapsed * 1.2) * (lookUpMode ? 0.006 : 0.003));
+      markerRef.current.scale.setScalar((visualCommand?.type === "observe-guide" ? 0.036 : 0.026) + Math.sin(elapsed * 1.2) * 0.003);
+      markerRef.current.material.opacity = visualCommand?.type === "observe-guide" ? 0.96 : 0.84;
     }
 
     if (markerHaloRef.current) {
       markerHaloRef.current.lookAt(camera.position);
-      markerHaloRef.current.scale.setScalar((lookUpMode ? 0.078 : 0.046) + Math.sin(elapsed * 1.45) * (lookUpMode ? 0.02 : 0.01));
+      markerHaloRef.current.scale.setScalar((visualCommand?.type === "observe-guide" ? 0.072 : 0.046) + Math.sin(elapsed * 1.45) * 0.01);
+      markerHaloRef.current.material.opacity = visualCommand?.type === "observe-guide" ? 0.58 : 0.34;
     }
 
     if (gridRef.current) {
@@ -246,36 +247,37 @@ function EarthGroup({ snapshot, showClouds, showGrid, sunDirection, lookUpMode, 
       </mesh>
       <mesh ref={markerHaloRef} position={markerPosition}>
         <ringGeometry args={[1, 1.42, 64]} />
-        <meshBasicMaterial color="#84ffd8" transparent opacity={lookUpMode ? 0.58 : 0.34} blending={THREE.AdditiveBlending} depthWrite={false} />
+        <meshBasicMaterial color="#84ffd8" transparent opacity={0.34} blending={THREE.AdditiveBlending} depthWrite={false} />
       </mesh>
       <mesh ref={markerRef} position={markerPosition}>
         <ringGeometry args={[1, 1.65, 48]} />
-        <meshBasicMaterial color="#a8ffe6" transparent opacity={lookUpMode ? 0.95 : 0.84} blending={THREE.AdditiveBlending} depthWrite={false} />
+        <meshBasicMaterial color="#a8ffe6" transparent opacity={0.84} blending={THREE.AdditiveBlending} depthWrite={false} />
       </mesh>
       {isSunlightCommand && <TerminatorEmphasis sunDirection={sunDirection} />}
       <mesh position={markerPosition}>
         <sphereGeometry args={[0.01, 16, 16]} />
         <meshBasicMaterial color="#f7ffee" />
       </mesh>
-      <PhotoMemoryMarkers markers={photoMarkers} />
+      <PhotoMemoryMarkers markers={photoMarkers} onPhotoPreviewChange={onPhotoPreviewChange} />
     </group>
   );
 }
 
-function PhotoMemoryMarkers({ markers }) {
+function PhotoMemoryMarkers({ markers, onPhotoPreviewChange }) {
   return (
     <group>
       {markers.map((marker) => (
-        <PhotoMemoryMarker key={marker.id} marker={marker} />
+        <PhotoMemoryMarker key={marker.id} marker={marker} onPhotoPreviewChange={onPhotoPreviewChange} />
       ))}
     </group>
   );
 }
 
-function PhotoMemoryMarker({ marker }) {
+function PhotoMemoryMarker({ marker, onPhotoPreviewChange }) {
+  const groupRef = useRef();
   const ringRef = useRef();
   const dotRef = useRef();
-  const { camera } = useThree();
+  const { camera, size } = useThree();
   const [isHovered, setIsHovered] = useState(false);
   const position = useMemo(() => latLonToVector3(marker.latitude, marker.longitude, 1.066), [marker.latitude, marker.longitude]);
 
@@ -291,10 +293,17 @@ function PhotoMemoryMarker({ marker }) {
     if (dotRef.current) {
       dotRef.current.scale.setScalar(isHovered ? 1.5 : 1);
     }
+
+    if (isHovered && groupRef.current && onPhotoPreviewChange) {
+      onPhotoPreviewChange({
+        marker,
+        style: getPreviewStyle(groupRef.current, camera, size)
+      });
+    }
   });
 
   return (
-    <group position={position}>
+    <group ref={groupRef} position={position}>
       <mesh
         ref={ringRef}
         onPointerOver={(event) => {
@@ -305,6 +314,7 @@ function PhotoMemoryMarker({ marker }) {
         onPointerOut={(event) => {
           event.stopPropagation();
           setIsHovered(false);
+          onPhotoPreviewChange?.(null);
           document.body.style.cursor = "";
         }}
       >
@@ -324,32 +334,60 @@ function PhotoMemoryMarker({ marker }) {
         <div
           className={`photo-memory-pin${isHovered ? " active" : ""}`}
           onMouseEnter={() => setIsHovered(true)}
-          onMouseLeave={() => setIsHovered(false)}
+          onMouseLeave={() => {
+            setIsHovered(false);
+            onPhotoPreviewChange?.(null);
+          }}
         >
           <span>{marker.label}</span>
-          <div className="photo-memory-preview">
-            <img src={marker.imageUrl} alt={`${marker.label} memory`} />
-            <div>
-              <strong>{marker.label}</strong>
-              <span>{marker.region}</span>
-              <small>{marker.capturedAt}</small>
-            </div>
-          </div>
         </div>
       </Html>
     </group>
   );
 }
 
-function CameraControls({ snapshot, resetViewSignal, lookUpMode, lookUpSignal, visualCommand, sunDirection }) {
+function getPreviewStyle(object, camera, size) {
+  const world = new THREE.Vector3();
+  object.getWorldPosition(world);
+  world.project(camera);
+
+  const screenX = (world.x * 0.5 + 0.5) * size.width;
+  const screenY = (-world.y * 0.5 + 0.5) * size.height;
+  const width = Math.min(280, Math.max(218, size.width * 0.42));
+  const height = width * 0.78;
+  const margin = 14;
+  const prefersLeft = screenX > size.width * 0.54;
+  const left = prefersLeft
+    ? clamp(screenX - width - 26, margin, size.width - width - margin)
+    : clamp(screenX + 26, margin, size.width - width - margin);
+  const top = clamp(screenY - height * 0.48, margin + 76, size.height - height - margin);
+
+  return {
+    "--preview-x": `${left}px`,
+    "--preview-y": `${top}px`,
+    "--preview-width": `${width}px`
+  };
+}
+
+function CameraControls({ snapshot, resetViewSignal, mode, visualCommand, sunDirection }) {
   const controlsRef = useRef();
-  const { camera } = useThree();
-  const [isUserInteracting, setIsUserInteracting] = useState(false);
+  const { camera, size } = useThree();
+  const [autoRotatePaused, setAutoRotatePaused] = useState(false);
   const targetCameraRef = useRef(null);
   const targetLookAtRef = useRef(new THREE.Vector3(0, 0, 0));
+  const resumeAutoRotateTimerRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (resumeAutoRotateTimerRef.current) {
+        window.clearTimeout(resumeAutoRotateTimerRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (!controlsRef.current || resetViewSignal === 0) return;
+    cancelProgrammaticMove();
     const surfaceDirection = latLonToVector3(snapshot.latitude, snapshot.longitude, 1)
       .applyAxisAngle(new THREE.Vector3(0, 0, 1), EARTH_AXIAL_TILT)
       .normalize();
@@ -360,33 +398,37 @@ function CameraControls({ snapshot, resetViewSignal, lookUpMode, lookUpSignal, v
   }, [camera, resetViewSignal, snapshot.latitude, snapshot.longitude]);
 
   useEffect(() => {
-    if (!controlsRef.current || !lookUpMode) return;
+    if (!controlsRef.current || mode !== "observe") return;
 
-    const surfaceDirection = latLonToVector3(snapshot.latitude, snapshot.longitude, 1)
-      .applyAxisAngle(new THREE.Vector3(0, 0, 1), EARTH_AXIAL_TILT)
-      .normalize();
-
-    targetCameraRef.current = surfaceDirection.clone().multiplyScalar(2.85);
-    targetLookAtRef.current = surfaceDirection.clone().multiplyScalar(0.18);
-    setIsUserInteracting(true);
-  }, [lookUpMode, lookUpSignal, snapshot.latitude, snapshot.longitude]);
+    const pose = getLocalObservationPose(snapshot, size.width);
+    targetCameraRef.current = pose.cameraPosition;
+    targetLookAtRef.current = pose.lookAt;
+    pauseAutoRotate();
+  }, [mode, size.width, snapshot.latitude, snapshot.longitude]);
 
   useEffect(() => {
     if (!controlsRef.current || !visualCommand) return;
 
+    if (visualCommand.type === "observe-guide") {
+      const pose = getLocalObservationPose(snapshot, size.width);
+      targetCameraRef.current = pose.cameraPosition;
+      targetLookAtRef.current = pose.lookAt;
+      pauseAutoRotate();
+    }
+
     if (visualCommand.type === "night-side") {
       targetCameraRef.current = sunDirection.clone().multiplyScalar(-4.25);
       targetLookAtRef.current = new THREE.Vector3(0, 0, 0);
-      setIsUserInteracting(true);
+      pauseAutoRotate();
     }
 
     if (visualCommand.type === "sunlight") {
       const edgeDirection = new THREE.Vector3(-sunDirection.z, 0.18, sunDirection.x).normalize();
       targetCameraRef.current = edgeDirection.multiplyScalar(3.72);
       targetLookAtRef.current = sunDirection.clone().multiplyScalar(0.15);
-      setIsUserInteracting(true);
+      pauseAutoRotate();
     }
-  }, [sunDirection, visualCommand]);
+  }, [snapshot, size.width, sunDirection, visualCommand]);
 
   useFrame(() => {
     if (!controlsRef.current || !targetCameraRef.current) return;
@@ -397,8 +439,34 @@ function CameraControls({ snapshot, resetViewSignal, lookUpMode, lookUpSignal, v
 
     if (camera.position.distanceTo(targetCameraRef.current) < 0.025) {
       targetCameraRef.current = null;
+      scheduleAutoRotateResume(900);
     }
   });
+
+  function pauseAutoRotate() {
+    if (resumeAutoRotateTimerRef.current) {
+      window.clearTimeout(resumeAutoRotateTimerRef.current);
+      resumeAutoRotateTimerRef.current = null;
+    }
+    setAutoRotatePaused(true);
+  }
+
+  function scheduleAutoRotateResume(delay = 2200) {
+    if (resumeAutoRotateTimerRef.current) {
+      window.clearTimeout(resumeAutoRotateTimerRef.current);
+    }
+    resumeAutoRotateTimerRef.current = window.setTimeout(() => {
+      setAutoRotatePaused(false);
+      resumeAutoRotateTimerRef.current = null;
+    }, delay);
+  }
+
+  function cancelProgrammaticMove() {
+    targetCameraRef.current = null;
+    if (controlsRef.current) {
+      targetLookAtRef.current = controlsRef.current.target.clone();
+    }
+  }
 
   return (
     <OrbitControls
@@ -410,16 +478,31 @@ function CameraControls({ snapshot, resetViewSignal, lookUpMode, lookUpSignal, v
       zoomSpeed={0.45}
       minDistance={2.35}
       maxDistance={6.4}
-      autoRotate={!isUserInteracting && !lookUpMode}
-      autoRotateSpeed={0.12}
+      autoRotate={!autoRotatePaused}
+      autoRotateSpeed={0.08}
       onStart={() => {
-        setIsUserInteracting(true);
+        cancelProgrammaticMove();
+        pauseAutoRotate();
       }}
       onEnd={() => {
-        setIsUserInteracting(false);
+        scheduleAutoRotateResume();
       }}
     />
   );
+}
+
+function getLocalObservationPose(snapshot, width) {
+  const surfaceDirection = latLonToVector3(snapshot.latitude, snapshot.longitude, 1)
+    .applyAxisAngle(new THREE.Vector3(0, 0, 1), EARTH_AXIAL_TILT)
+    .normalize();
+  const distance = width < 760 ? 5.92 : 3.68;
+  const cameraPosition = surfaceDirection
+    .clone()
+    .multiplyScalar(distance)
+    .add(new THREE.Vector3(0, width < 760 ? 0.24 : 0.12, 0));
+  const lookAt = surfaceDirection.clone().multiplyScalar(0.1);
+
+  return { cameraPosition, lookAt };
 }
 
 function TerminatorEmphasis({ sunDirection }) {
@@ -527,6 +610,10 @@ function latLonToVector3(lat, lon, radius) {
     radius * Math.cos(phi),
     radius * Math.sin(phi) * Math.sin(theta)
   );
+}
+
+function clamp(value, min, max) {
+  return Math.min(Math.max(value, min), max);
 }
 
 function addLatitude(points, lat, radius) {

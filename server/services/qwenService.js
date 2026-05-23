@@ -105,7 +105,9 @@ function buildUserContent(text, attachments = [], context) {
         JSON.stringify(context, null, 2),
         "",
         "Return compact JSON only with this shape:",
-        "{\"text\":\"...\",\"actions\":[{\"type\":\"open_look_up\"}],\"memoriesToSave\":[]}"
+        "{\"text\":\"...\",\"actions\":[],\"memoriesToSave\":[]}",
+        "",
+        "Use actions only when the UI should visibly do something. Do not include set_mode observe unless the user asked for spatial sky, sun, moon, cloud, weather, or local telemetry."
       ].join("\n")
     }
   ];

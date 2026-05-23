@@ -43,7 +43,7 @@ MVP 的目标是在用户打开后的 10 秒内，让地球看起来是活着的
 - 可见的数据来源标签
 - 本地近似太阳和月亮方位角/高度角计算
 - Soundscape Mode 声景系统雏形，支持本地三层音频混音
-- Look Up Mode，本地天空 HUD、用户位置聚焦和环境式天空叙事
+- Observe Mode，左右分布的本地天空 telemetry、日出/日落和月亮路径曲线
 - Earth Command 文本输入，可回答固定天空意图并驱动地球相机动作
 
 ## 代码结构
@@ -58,18 +58,16 @@ src/
   components/
     EarthCanvas.jsx               # React Three Fiber 地球、光照、相机、标记点
     EarthCommandInput.jsx         # 文本命令输入，后续多模态入口
-    LookUpPanel.jsx               # Look Up Mode 的本地天空 HUD
     SoundscapeToggle.jsx          # 极简声景开关
   hooks/
-    useLookUpMode.js              # Look Up Mode 状态和派生天空快照
     useSoundscape.js              # 声景生命周期和基于 telemetry 的音量更新
   services/
     audioService.js               # 本地循环音频层和 fade 引擎
     earthCommandService.js        # 固定命令意图解析和 UI action 映射
     earthDataService.js           # UI 环境快照兼容包装
     earthTelemetry.js             # 位置、天气、太阳/月亮 telemetry 数据层
-    lookUpService.js              # 天空方向/高度解释和叙事生成
     narration.js                  # 环境式 companion narration
+    skyDescriptionService.js      # 天空方向和高度的自然语言辅助
   utils/
     astro.js                      # 本地近似太阳/月亮计算
     format.js                     # 展示格式化工具
@@ -100,7 +98,7 @@ server/
 - 浏览器端不要持有模型 provider API key。
 - `EarthCommandInput` 后续应调用后端处理开放式 LLM 对话。
 - 后端响应应同时返回自然语言和可选 UI actions。
-- UI actions 保持结构化，例如 `open_look_up`、`focus_moon`、`show_night_side`、`show_sunlight`、`set_mode`。
+- UI actions 保持结构化，例如 `set_mode`、`focus_photo_marker`、`show_night_side`、`show_sunlight`。
 - `EarthTelemetry` 应作为压缩上下文发送给模型，不要直接发送完整 UI state。
 - 长期记忆先从小型显式用户档案/偏好/稳定兴趣开始，再考虑 embeddings 或检索系统。
 
@@ -178,6 +176,12 @@ navigator.geolocation.getCurrentPosition()
 - 本地近似 `moon_azimuth`
 - 本地近似 `moon_altitude`
 - 本地月相计算
+- 通过本地后端可选接入 Timeanddate 月亮信息：
+  - `moonrise`
+  - `moonset`
+  - meridian 过中天时间 / 高度
+  - 当前 Moon Direction
+  - 当前 Moon Altitude
 
 后续专用天文服务目标字段：
 
@@ -197,6 +201,8 @@ navigator.geolocation.getCurrentPosition()
 
 Open-Meteo 是 MVP 阶段天气和日出/日落的首选来源，因为它免 key、适合演示。不要在未验证前假设标准 forecast endpoint 稳定支持 moonrise/moonset 或 sun/moon azimuth 字段。
 
+Timeanddate 的月亮页面可以提供更完整的本地月亮信息，但也可能返回反爬挑战页或 HTTP 403。SkyFlow 只通过后端请求，并设置 8 小时缓存和 45 秒最小请求间隔。如果 Timeanddate 拒绝请求，应用会继续使用本地天文近似，不会高频重试。
+
 ### 真实云图
 
 后续阶段：NASA GIBS。
@@ -211,14 +217,14 @@ NASA GIBS 可以通过 WMTS/WMS/TMS/XYZ tiles 提供接近实时的卫星影像�
 
 - 新增 Soundscape Mode，作为本地音频分层系统，包含 base ambient、night piano 和 wind/cloud 三层。
 - 为声景音频层加入平滑 fade in / fade out，避免突然切换。
-- 声景音量会根据云量、风速、太阳高度角、月亮高度角和 Look Up Mode 动态变化。
+- 声景音量会根据云量、风速、太阳高度角和月亮高度角动态变化。
 - 新增 `public/audio/README.md`，记录需要放入的本地音频文件名。
-- 新增 Look Up Mode，包含低打扰按钮、本地天空 HUD、用户位置聚焦和更明显的 pulse marker。
+- 将旧的本地天空 HUD 替换为更克制的 Observe 布局，把 telemetry 分布在左右边缘。
 - 新增人类可读的天空方向和高度解释，例如 `NE`、`below horizon`、`low above horizon`。
-- 新增 Look Up 环境式叙事，描述月亮方向、云量和本地光照状态。
+- 新增本地天空环境式叙事，描述月亮方向、云量和本地光照状态。
 - 新增 Earth Command 输入框，占位文案为 `Ask the Earth...`。
 - 新增固定命令意图：月亮、太阳、天空、日落、夜侧和日照。
-- 将 Earth Command 和地球视觉动作连接起来，命令可打开 Look Up Mode 或移动相机到夜侧/日照视角。
+- 将 Earth Command 和地球视觉动作连接起来，命令可切换模式或移动相机到夜侧/日照视角。
 - 为 sunlight 命令新增低调的日夜分界线强调效果。
 - 验证 `npm run build` 通过；Vite 仍有预期内的 Three.js chunk 偏大提示。
 - 通读应用代码，发现 `public/textures` 中已经存在真实地球贴图，但当前地球仍在使用程序化 canvas 纹理。
@@ -285,13 +291,11 @@ npm run build
 
 ## 下一步
 
-- 在 `server/` 下新增 LLM 后端 scaffold，并先实现 `POST /api/earth/chat`。
-- 将 Earth Command 从本地固定 intents 逐步迁移为后端返回 `{ text, actions }`。
-- 新增最小长期记忆模型，先记录用户稳定偏好、位置假设和反复关注的天空兴趣。
-- 将三条可循环播放的本地音频文件加入 `public/audio/`，并按实际听感调整各层音量。
-- 在浏览器中做桌面和移动端视觉 QA，重点检查 Look Up HUD、Earth Command 和右侧控制组。
-- 继续优化 Look Up 相机运动，让它更像被引导的轨道靠近，而不是直接重新定位。
+- 加固 LLM 后端，并为 `POST /api/earth/chat` 增加更清晰的 provider 错误诊断。
+- 扩展长期记忆模型，覆盖用户稳定偏好、位置假设、反复关注的天空兴趣和照片上下文。
+- 根据真实本地时间切换，继续调整 `public/audio/` 里的白天/夜晚音乐听感。
+- 在浏览器中做桌面和移动端视觉 QA，重点检查 Observe、Earth Command 和照片记忆标注。
 - 只有在确实需要时才在 UI 中加入命令示例，避免界面变成聊天面板。
-- 强化 `Where is the moon?` 的反馈，包括更明显的 HUD 行强调，以及可选的月亮位置关系提示。
+- 强化 `Where is the moon?` 的反馈，包括更明显的右侧 telemetry 强调，以及可选的月亮位置关系提示。
 - 在需要时用更准确的天文算法或服务替换当前近似月亮高度角/方位角。
 - 如果生产 bundle 体积成为问题，再考虑对 Three.js / R3F 做代码拆分。

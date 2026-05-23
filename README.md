@@ -43,7 +43,7 @@ Implemented:
 - visible telemetry source labels
 - local approximate sun and moon azimuth/altitude calculations
 - Soundscape Mode shell with local three-layer audio mixing
-- Look Up Mode with local sky HUD, user-location focus, and ambient sky narration
+- Observe mode with left/right local sky telemetry, sunrise/sunset and moon path curves
 - Earth Command text input that can answer fixed sky intents and drive globe camera actions
 
 ## Code Structure
@@ -58,18 +58,16 @@ src/
   components/
     EarthCanvas.jsx               # React Three Fiber globe, lighting, camera, markers
     EarthCommandInput.jsx         # text command input, future multimodal entry point
-    LookUpPanel.jsx               # local sky HUD for Look Up Mode
     SoundscapeToggle.jsx          # minimal soundscape on/off control
   hooks/
-    useLookUpMode.js              # Look Up Mode state and derived sky snapshot
     useSoundscape.js              # soundscape lifecycle and telemetry-driven volume updates
   services/
     audioService.js               # local looped audio layers and fade engine
     earthCommandService.js        # fixed command intent parser and UI action mapping
     earthDataService.js           # compatibility wrapper for UI environment snapshots
     earthTelemetry.js             # location, weather, solar/lunar telemetry source layer
-    lookUpService.js              # sky direction/altitude descriptions and narration
     narration.js                  # ambient companion narration
+    skyDescriptionService.js      # sky direction and altitude language helpers
   utils/
     astro.js                      # local approximate solar/lunar math
     format.js                     # display formatting helpers
@@ -103,7 +101,7 @@ Frontend/backend boundary:
 - `EarthCommandInput` should call the backend for open-ended LLM turns.
 - Microphone input should call `/api/asr/transcribe` first, then send the transcript through `EarthCommandInput` as the user turn.
 - The backend response should return both natural language and optional UI actions.
-- UI actions should stay structured, for example `open_look_up`, `focus_moon`, `show_night_side`, `show_sunlight`, or `set_mode`.
+- UI actions should stay structured, for example `set_mode`, `focus_photo_marker`, `show_night_side`, or `show_sunlight`.
 - `EarthTelemetry` should be sent as compact context, not as raw UI state.
 - Long-term memory should begin as a small explicit profile/preferences store before adding embeddings or retrieval.
 
@@ -181,6 +179,12 @@ Current implementation:
 - local approximate `moon_azimuth`
 - local approximate `moon_altitude`
 - local moon phase calculation
+- optional Timeanddate moon telemetry through the local backend:
+  - `moonrise`
+  - `moonset`
+  - meridian passing time / altitude
+  - current Moon Direction
+  - current Moon Altitude
 
 Target fields for a later dedicated astronomy provider:
 
@@ -200,6 +204,8 @@ Important note:
 
 Open-Meteo is the preferred MVP source for weather and sunrise/sunset because it is keyless and demo-friendly. Do not assume moonrise/moonset or sun/moon azimuth fields are available in the standard forecast endpoint unless verified before implementation.
 
+Timeanddate moon pages can provide richer local moon timing, but they may return an anti-bot challenge or HTTP 403. SkyFlow only requests them through the backend with an 8-hour cache and a 45-second minimum request interval. If Timeanddate blocks the request, the app keeps using local astronomy estimates instead of retrying aggressively.
+
 ### Real Cloud Imagery
 
 Future phase: NASA GIBS.
@@ -214,15 +220,15 @@ Do not make NASA GIBS a hard dependency for the MVP. First use a semi-transparen
 
 - Added Soundscape Mode as a local audio-layer system with base ambient, night piano, and wind/cloud layers.
 - Added smooth fade in/out behavior for soundscape layers and telemetry-driven target volumes.
-- Soundscape volume now responds to cloud cover, wind speed, sun altitude, moon altitude, and Look Up Mode.
+- Soundscape volume now responds to cloud cover, wind speed, sun altitude, and moon altitude.
 - Added `public/audio/README.md` documenting the required local audio filenames.
-- Added Look Up Mode with a low-interruption button, local sky HUD, user-location focus, and stronger pulse marker.
+- Replaced the former local sky HUD with a quieter Observe layout that keeps telemetry on the left and right edges.
 - Added human-readable direction and altitude descriptions for local sky state.
-- Added ambient Look Up narration such as moon direction, cloud cover, and local daylight context.
+- Added ambient local sky narration such as moon direction, cloud cover, and local daylight context.
 - Added Earth Command input with the placeholder `Ask the Earth...`.
 - Added fixed command intents for moon, sun, sky, sunset, night side, and sunlight.
 - Added microphone input for Ask mode with DashScope Paraformer ASR transcription before routing into Earth Command.
-- Connected Earth Command actions to globe behavior so commands can open Look Up Mode or move the camera to night/sunlight views.
+- Connected Earth Command actions to globe behavior so commands can switch modes or move the camera to night/sunlight views.
 - Added a subtle sunlight terminator emphasis for the sunlight command.
 - Verified `npm run build` passes; Vite still reports the expected large Three.js chunk warning.
 - Read through the app code and found that real Earth textures already existed in `public/textures`, but the globe was still using procedural canvas textures.
@@ -289,13 +295,11 @@ npm run build
 
 ## Next Steps
 
-- Add the LLM backend scaffold under `server/` with a first `POST /api/earth/chat` endpoint.
-- Move Earth Command from fixed local intents toward backend responses that include `{ text, actions }`.
-- Add a minimal memory model for stable user preferences, location assumptions, and recurring sky interests.
-- Add the three local loopable audio files under `public/audio/` and tune layer volumes by ear.
-- Run visual QA in browser across desktop and mobile sizes for Look Up HUD, Earth Command, and right-side controls.
-- Improve the Look Up camera move so it feels more like a guided orbital approach and less like a direct reposition.
+- Harden the LLM backend and add clearer provider error diagnostics for `POST /api/earth/chat`.
+- Expand the memory model for stable user preferences, location assumptions, recurring sky interests, and photo context.
+- Tune the day/night audio choices in `public/audio/` against actual local time transitions.
+- Run visual QA in browser across desktop and mobile sizes for Observe, Earth Command, and photo memory markers.
 - Add command examples in the UI only if needed; keep the interface ambient and avoid turning it into a chatbot panel.
-- Add stronger intent feedback for `Where is the moon?`, including a clearer HUD row emphasis and optional moon marker relation.
+- Add stronger intent feedback for `Where is the moon?`, including clearer right-side telemetry emphasis and optional moon marker relation.
 - Replace approximate moon altitude/azimuth with a more accurate astronomy calculation or provider when needed.
 - Consider code-splitting Three.js/R3F if production bundle size becomes important.
