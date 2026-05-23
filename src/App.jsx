@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
-import { Activity, Cloud, CloudOff, Eye, Grid2X2, LocateFixed, Moon, RotateCcw, SunMedium, Waves } from "lucide-react";
+import { Cloud, CloudOff, Eye, Grid2X2, LocateFixed, MessageCircle, Moon, RotateCcw, Sparkles, SunMedium, Telescope, Waves } from "lucide-react";
 import EarthCanvas from "./components/EarthCanvas.jsx";
 import EarthCommandInput from "./components/EarthCommandInput.jsx";
+import EarthConversationLog from "./components/EarthConversationLog.jsx";
 import LookUpPanel from "./components/LookUpPanel.jsx";
 import SoundscapeToggle from "./components/SoundscapeToggle.jsx";
 import { getEnvironmentSnapshot } from "./services/earthDataService.js";
 import { resolveEarthCommand } from "./services/earthCommandService.js";
+import { PHOTO_MEMORY_MARKERS } from "./services/photoMemoryService.js";
 import { buildNarration } from "./services/narration.js";
 import { useLookUpMode } from "./hooks/useLookUpMode.js";
 import { useSoundscape } from "./hooks/useSoundscape.js";
@@ -34,8 +36,11 @@ function App() {
   const [resetViewSignal, setResetViewSignal] = useState(0);
   const [visualCommand, setVisualCommand] = useState(null);
   const [commandResponse, setCommandResponse] = useState("");
+  const [commandBusy, setCommandBusy] = useState(false);
+  const [conversationTurns, setConversationTurns] = useState([]);
+  const [mode, setMode] = useState("companion");
   const lookUp = useLookUpMode(snapshot, now);
-  const soundscape = useSoundscape(snapshot, lookUp.enabled);
+  const soundscape = useSoundscape(snapshot, lookUp.enabled, now);
 
   useEffect(() => {
     let cancelled = false;
@@ -90,6 +95,51 @@ function App() {
     return formatMinutes((next.getTime() - now.getTime()) / 60000);
   }, [snapshot.sunrise, snapshot.sunset, now]);
 
+  const readouts = useMemo(() => {
+    const localTime = compactClock(formatLocalClock(now, snapshot.longitude));
+    const moonAzimuth = snapshot.telemetry?.lunar?.azimuth;
+    const moonAltitude = snapshot.telemetry?.lunar?.altitude;
+    const sunAltitude = snapshot.telemetry?.solar?.altitude;
+    const cloudCover = snapshot.weather?.cloudCover;
+
+    if (mode === "ask") {
+      return {
+        eyebrow: "Earth Command",
+        main: "Ask",
+        unit: "the Earth",
+        detail: commandResponse || "The globe can answer and move.",
+        secondary: [
+          { label: "memory", value: "planned" },
+          { label: "mode", value: lookUp.enabled ? "look up" : "orbit" }
+        ]
+      };
+    }
+
+    if (mode === "observe") {
+      return {
+        eyebrow: "Local telemetry",
+        main: sunAltitude == null ? "--" : `${Math.round(sunAltitude)}°`,
+        unit: "sun altitude",
+        detail: `${snapshot.locationName} / ${formatUtcOffset(snapshot.longitude)}`,
+        secondary: [
+          { label: "moon", value: moonAzimuth == null ? "--" : `${Math.round(moonAzimuth)}°` },
+          { label: "cloud", value: cloudCover == null ? "--" : `${Math.round(cloudCover)}%` }
+        ]
+      };
+    }
+
+    return {
+      eyebrow: "Companion orbit",
+      main: localTime,
+      unit: "local time",
+      detail: lookUp.sky.narration,
+      secondary: [
+        { label: "moon", value: moonAltitude == null ? "--" : `${Math.round(moonAltitude)}°` },
+        { label: "next light", value: nextSunEvent }
+      ]
+    };
+  }, [commandResponse, lookUp.enabled, lookUp.sky.narration, mode, nextSunEvent, now, snapshot]);
+
   return (
     <main className="relative min-h-screen overflow-hidden bg-void text-slate-100">
       <EarthCanvas
@@ -101,36 +151,34 @@ function App() {
         lookUpMode={lookUp.enabled}
         lookUpSignal={lookUp.sequence}
         visualCommand={visualCommand}
+        photoMarkers={mode === "ask" ? PHOTO_MEMORY_MARKERS : []}
       />
 
       <div className="pointer-events-none absolute inset-0 orbital-vignette" />
       <div className="pointer-events-none absolute inset-0 scanline-field" />
 
-      <section className="pointer-events-none absolute left-0 right-0 top-0 z-10 flex items-start gap-4 px-5 py-5 sm:px-8">
-        <div className="glass-strip max-w-[min(520px,calc(100vw-40px))]">
-          <div className="flex items-center gap-3 text-[11px] uppercase tracking-[0.28em] text-slate-300/70">
-            <Activity size={14} />
-            <span>SkyFlow Earth Companion</span>
+      <header className="top-orbit-bar">
+        <div className="brand-lockup">
+          <Sparkles size={17} />
+          <div>
+            <strong>SkyFlow</strong>
+            <span>Earth Companion</span>
           </div>
+        </div>
+        <ModeSwitch mode={mode} onChange={setMode} />
+      </header>
+
+      <section className="companion-copy">
+        <div className="glass-strip">
+          <p className="mode-kicker">{readouts.eyebrow}</p>
           <p className="mt-3 max-w-[34rem] text-balance font-display text-lg leading-relaxed text-slate-100 sm:text-2xl">
-            {narration}
+            {mode === "ask" ? "Ask the planet, then watch the interface move with the answer." : narration}
           </p>
         </div>
       </section>
 
       <div className="orbit-controls absolute right-5 top-24 z-20 sm:right-8 sm:top-24">
-        <div className="time-card">
-          <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-slate-300/50">
-            local time
-          </p>
-          <p className="mt-1 font-display text-2xl text-slate-50">{formatLocalClock(now, snapshot.longitude)}</p>
-          <p className="mt-2 truncate font-mono text-[10px] uppercase tracking-[0.18em] text-slate-300/55">
-            {snapshot.locationName} / {formatUtcOffset(snapshot.longitude)}
-          </p>
-          <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.16em] text-slate-300/45">
-            sun alt {formatDegrees(snapshot.telemetry?.solar?.altitude)} / az {formatDegrees(snapshot.telemetry?.solar?.azimuth)}
-          </p>
-        </div>
+        <OrbitalReadout readouts={readouts} />
         <button
           className="control-button look-up-button"
           type="button"
@@ -179,10 +227,15 @@ function App() {
 
       <LookUpPanel active={lookUp.enabled} sky={lookUp.sky} focus={lookUp.focus} />
 
-      <section className="pointer-events-none absolute bottom-0 left-0 right-0 z-10 px-5 pb-5 sm:px-8 sm:pb-8">
-        <div className="pointer-events-auto mb-3 max-w-[520px]">
-          <EarthCommandInput response={commandResponse} onSubmit={handleEarthCommand} />
+      <section className={`bottom-orbit-panel ${mode}`}>
+        {mode === "ask" && (
+        <div className="pointer-events-auto ask-console">
+          <EarthConversationLog turns={conversationTurns} />
+          <EarthCommandInput response={commandResponse} onSubmit={handleEarthCommand} busy={commandBusy} />
         </div>
+        )}
+        {mode === "observe" && (
+        <>
         <div className="mb-3 flex max-w-[980px] flex-wrap items-center gap-2">
           <div className="geo-chip">
             <LocateFixed size={14} />
@@ -223,16 +276,100 @@ function App() {
             value={snapshot.weather?.summary ?? "quiet telemetry"}
           />
         </div>
+        </>
+        )}
       </section>
     </main>
   );
 
-  function handleEarthCommand(command) {
-    const result = resolveEarthCommand(command, snapshot);
-    if (!result) return;
+  async function handleEarthCommand(commandInput) {
+    const text = typeof commandInput === "string" ? commandInput : commandInput.text;
+    const attachments = typeof commandInput === "string" ? [] : commandInput.attachments ?? [];
 
-    setCommandResponse(result.response);
+    if (!text && attachments.length === 0) return;
 
+    setCommandBusy(true);
+    setCommandResponse("Thinking with the Earth...");
+    const turnId = `turn-${Date.now()}`;
+    const createdAt = compactClock(formatLocalClock(now, snapshot.longitude));
+    const inputAttachments = attachments.map(({ kind, name }) => ({ kind, name }));
+
+    setConversationTurns((turns) => [
+      ...turns,
+      {
+        id: turnId,
+        createdAt,
+        routeLabel: "checking api",
+        status: "pending",
+        userText: text,
+        assistantText: "Routing through SkyFlow...",
+        attachments: inputAttachments,
+        actions: []
+      }
+    ].slice(-8));
+
+    try {
+      const response = await fetch("/api/earth/chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          text,
+          attachments,
+          mode,
+          localTime: formatLocalClock(now, snapshot.longitude),
+          telemetry: snapshot.telemetry,
+          locationName: snapshot.locationName,
+          latitude: snapshot.latitude,
+          longitude: snapshot.longitude,
+          sunrise: snapshot.sunrise,
+          sunset: snapshot.sunset,
+          moonPhase: snapshot.moonPhase,
+          photoMemories: PHOTO_MEMORY_MARKERS
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error("backend unavailable");
+      }
+
+      const result = await response.json();
+      setCommandResponse(result.text ?? "I am listening from orbit.");
+      applyEarthActions(result.actions ?? []);
+      updateConversationTurn(turnId, {
+        routeLabel: "qwen api",
+        status: "answered",
+        assistantText: result.text ?? "I am listening from orbit.",
+        actions: result.actions ?? []
+      });
+    } catch {
+      const result = resolveEarthCommand(text ?? "", snapshot, conversationTurns, attachments);
+      if (result) {
+        setCommandResponse(result.response);
+        applyLocalCommand(result);
+        updateConversationTurn(turnId, {
+          routeLabel: "local rules",
+          status: "answered",
+          assistantText: result.response,
+          actions: localResultToActions(result)
+        });
+      } else {
+        const fallbackText = "I could not reach the model yet, but the local Earth controls are still online.";
+        setCommandResponse(fallbackText);
+        updateConversationTurn(turnId, {
+          routeLabel: "local fallback",
+          status: "answered",
+          assistantText: fallbackText,
+          actions: []
+        });
+      }
+    } finally {
+      setCommandBusy(false);
+    }
+  }
+
+  function applyLocalCommand(result) {
     if (result.action === "look-up") {
       lookUp.open(result.focus);
     }
@@ -243,7 +380,119 @@ function App() {
         createdAt: Date.now()
       });
     }
+
+    if (result.action === "set-mode" && ["companion", "ask", "observe"].includes(result.mode)) {
+      setMode(result.mode);
+    }
   }
+
+  function applyEarthActions(actions) {
+    for (const action of actions) {
+      if (action.type === "open_look_up") {
+        lookUp.open(action.focus ?? null);
+      }
+
+      if (action.type === "focus_moon") {
+        lookUp.open("moon");
+      }
+
+      if (action.type === "focus_sun") {
+        lookUp.open("sun");
+      }
+
+      if (action.type === "show_night_side") {
+        setVisualCommand({ type: "night-side", createdAt: Date.now() });
+      }
+
+      if (action.type === "show_sunlight") {
+        setVisualCommand({ type: "sunlight", createdAt: Date.now() });
+      }
+
+      if (action.type === "set_mode" && ["companion", "ask", "observe"].includes(action.mode)) {
+        setMode(action.mode);
+      }
+    }
+  }
+
+  function updateConversationTurn(turnId, patch) {
+    setConversationTurns((turns) =>
+      turns.map((turn) => (turn.id === turnId ? { ...turn, ...patch } : turn))
+    );
+  }
+
+  function localResultToActions(result) {
+    if (result.action === "look-up") {
+      return [{ type: "open_look_up", focus: result.focus ?? null }];
+    }
+
+    if (result.action === "night-side") {
+      return [{ type: "show_night_side" }];
+    }
+
+    if (result.action === "sunlight") {
+      return [{ type: "show_sunlight" }];
+    }
+
+    if (result.action === "set-mode") {
+      return [{ type: "set_mode", mode: result.mode }];
+    }
+
+    if (result.action === "focus-photo") {
+      return [{ type: "focus_photo_marker", id: result.photoId }];
+    }
+
+    return [];
+  }
+}
+
+function ModeSwitch({ mode, onChange }) {
+  const modes = [
+    { id: "companion", label: "Companion", icon: <Sparkles size={14} /> },
+    { id: "ask", label: "Ask", icon: <MessageCircle size={14} /> },
+    { id: "observe", label: "Observe", icon: <Telescope size={14} /> }
+  ];
+
+  return (
+    <nav className="mode-switch" aria-label="SkyFlow mode">
+      {modes.map((item) => (
+        <button
+          key={item.id}
+          type="button"
+          className={mode === item.id ? "active" : ""}
+          aria-pressed={mode === item.id}
+          onClick={() => onChange(item.id)}
+        >
+          {item.icon}
+          <span>{item.label}</span>
+        </button>
+      ))}
+    </nav>
+  );
+}
+
+function OrbitalReadout({ readouts }) {
+  return (
+    <aside className="orbital-readout" aria-live="polite">
+      <p>{readouts.eyebrow}</p>
+      <div className="readout-main">
+        <strong>{readouts.main}</strong>
+        <span>{readouts.unit}</span>
+      </div>
+      <p className="readout-detail">{readouts.detail}</p>
+      <div className="readout-secondary">
+        {readouts.secondary.map((item) => (
+          <div key={item.label}>
+            <span>{item.label}</span>
+            <strong>{item.value}</strong>
+          </div>
+        ))}
+      </div>
+    </aside>
+  );
+}
+
+function compactClock(value) {
+  return value.replace(/:(\d{2})(\s?[AP]M)?$/i, "$2");
 }
 
 function StatusCell({ icon, label, value }) {

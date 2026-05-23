@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
+    "server": "node server/index.js",
     "build": "vite build",
     "preview": "vite preview --host 0.0.0.0"
   },
@@ -15,7 +16,8 @@
     "lucide-react": "^0.468.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "three": "^0.171.0"
+    "three": "^0.171.0",
+    "ws": "^8.21.0"
   },
   "devDependencies": {
     "autoprefixer": "^10.4.20",

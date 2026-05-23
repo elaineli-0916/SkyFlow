@@ -1,7 +1,8 @@
-Place local loopable soundscape files here:
+Place local loopable soundscape files here.
 
-- base-ambient.mp3
-- night-piano.mp3
-- wind-cloud.mp3
+Current score layers:
 
-SkyFlow does not stream audio. The Soundscape engine references these local files and fades layers based on EarthTelemetry.
+- `Gregor Quendel - Bach - Prelude and Fugue in C minor - BWV 847 - The Well-Tempered Clavier, No. 2 - Arranged for Strings.mp3.mp3`
+- `Nicola Benedetti, violin; Julien Quentin, piano - Méditation from Thaïs.mp3`
+
+SkyFlow does not stream audio. The Soundscape engine references local files and fades between Bach for daytime and Thaïs for nighttime based on local time.

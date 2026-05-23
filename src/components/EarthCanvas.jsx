@@ -1,12 +1,12 @@
 import { Canvas, useFrame, useLoader, useThree } from "@react-three/fiber";
-import { OrbitControls, Stars } from "@react-three/drei";
+import { Html, OrbitControls, Stars } from "@react-three/drei";
 import { Suspense, forwardRef, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { getSubsolarDirection } from "../utils/astro.js";
 
 const EARTH_AXIAL_TILT = THREE.MathUtils.degToRad(23.44);
 
-function EarthCanvas({ snapshot, now, showClouds, showGrid, resetViewSignal, lookUpMode, lookUpSignal, visualCommand }) {
+function EarthCanvas({ snapshot, now, showClouds, showGrid, resetViewSignal, lookUpMode, lookUpSignal, visualCommand, photoMarkers = [] }) {
   const sunDirection = useMemo(() => getSubsolarDirection(now), [now]);
   const tiltedSunDirection = useMemo(
     () => sunDirection.clone().applyAxisAngle(new THREE.Vector3(0, 0, 1), -EARTH_AXIAL_TILT).normalize(),
@@ -32,6 +32,7 @@ function EarthCanvas({ snapshot, now, showClouds, showGrid, resetViewSignal, loo
             sunDirection={tiltedSunDirection}
             lookUpMode={lookUpMode}
             visualCommand={visualCommand}
+            photoMarkers={photoMarkers}
           />
           <MoonMarker now={now} />
           <CameraControls
@@ -58,7 +59,7 @@ function OrbitalLighting({ sunDirection }) {
   );
 }
 
-function EarthGroup({ snapshot, showClouds, showGrid, sunDirection, lookUpMode, visualCommand }) {
+function EarthGroup({ snapshot, showClouds, showGrid, sunDirection, lookUpMode, visualCommand, photoMarkers }) {
   const groupRef = useRef();
   const earthRef = useRef();
   const cloudRef = useRef();
@@ -256,6 +257,86 @@ function EarthGroup({ snapshot, showClouds, showGrid, sunDirection, lookUpMode, 
         <sphereGeometry args={[0.01, 16, 16]} />
         <meshBasicMaterial color="#f7ffee" />
       </mesh>
+      <PhotoMemoryMarkers markers={photoMarkers} />
+    </group>
+  );
+}
+
+function PhotoMemoryMarkers({ markers }) {
+  return (
+    <group>
+      {markers.map((marker) => (
+        <PhotoMemoryMarker key={marker.id} marker={marker} />
+      ))}
+    </group>
+  );
+}
+
+function PhotoMemoryMarker({ marker }) {
+  const ringRef = useRef();
+  const dotRef = useRef();
+  const { camera } = useThree();
+  const [isHovered, setIsHovered] = useState(false);
+  const position = useMemo(() => latLonToVector3(marker.latitude, marker.longitude, 1.066), [marker.latitude, marker.longitude]);
+
+  useFrame(({ clock }) => {
+    const elapsed = clock.getElapsedTime();
+    const scale = (isHovered ? 0.072 : 0.048) + Math.sin(elapsed * 1.7) * 0.006;
+
+    if (ringRef.current) {
+      ringRef.current.lookAt(camera.position);
+      ringRef.current.scale.setScalar(scale);
+    }
+
+    if (dotRef.current) {
+      dotRef.current.scale.setScalar(isHovered ? 1.5 : 1);
+    }
+  });
+
+  return (
+    <group position={position}>
+      <mesh
+        ref={ringRef}
+        onPointerOver={(event) => {
+          event.stopPropagation();
+          setIsHovered(true);
+          document.body.style.cursor = "pointer";
+        }}
+        onPointerOut={(event) => {
+          event.stopPropagation();
+          setIsHovered(false);
+          document.body.style.cursor = "";
+        }}
+      >
+        <ringGeometry args={[1, 1.36, 40]} />
+        <meshBasicMaterial color="#ffe9a6" transparent opacity={isHovered ? 0.76 : 0.42} blending={THREE.AdditiveBlending} depthWrite={false} />
+      </mesh>
+      <mesh ref={dotRef}>
+        <sphereGeometry args={[0.013, 16, 16]} />
+        <meshBasicMaterial color="#fff4c8" />
+      </mesh>
+      <Html
+        center
+        distanceFactor={5.4}
+        position={[0, 0.075, 0]}
+        style={{ pointerEvents: "auto" }}
+      >
+        <div
+          className={`photo-memory-pin${isHovered ? " active" : ""}`}
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => setIsHovered(false)}
+        >
+          <span>{marker.label}</span>
+          <div className="photo-memory-preview">
+            <img src={marker.imageUrl} alt={`${marker.label} memory`} />
+            <div>
+              <strong>{marker.label}</strong>
+              <span>{marker.region}</span>
+              <small>{marker.capturedAt}</small>
+            </div>
+          </div>
+        </div>
+      </Html>
     </group>
   );
 }

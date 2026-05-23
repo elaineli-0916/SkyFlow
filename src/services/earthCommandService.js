@@ -1,12 +1,54 @@
 import { azimuthToDirection, describeAltitude } from "./lookUpService.js";
 
-export function resolveEarthCommand(input, snapshot) {
+export function resolveEarthCommand(input, snapshot, history = [], attachments = []) {
   const normalized = input.trim().toLowerCase();
   const solar = snapshot.telemetry?.solar ?? {};
   const lunar = snapshot.telemetry?.lunar ?? {};
+  const previousTurn = history.at(-1);
 
-  if (!normalized) {
-    return null;
+  if (!normalized && attachments.length > 0) {
+    return {
+      intent: "attachment",
+      action: "look-up",
+      focus: "sky",
+      response: "I can see the attachment is here, but the model is offline. I will keep the sky open while we wait for the API."
+    };
+  }
+
+  if (includesAny(normalized, ["companion mode", "natural companion", "陪伴", "自然陪伴"])) {
+    return {
+      intent: "mode-companion",
+      action: "set-mode",
+      mode: "companion",
+      response: "Returning to Companion mode. I will quiet the interface and keep the Earth breathing."
+    };
+  }
+
+  if (includesAny(normalized, ["observe mode", "telemetry", "data", "观测", "数据"])) {
+    return {
+      intent: "mode-observe",
+      action: "set-mode",
+      mode: "observe",
+      response: "Switching to Observe mode. I will surface the local telemetry without crowding the Earth."
+    };
+  }
+
+  if (includesAny(normalized, ["ask mode", "chat", "conversation", "对话"])) {
+    return {
+      intent: "mode-ask",
+      action: "set-mode",
+      mode: "ask",
+      response: "Staying in Ask mode. The conversation stays visible while the Earth remains interactive."
+    };
+  }
+
+  if (includesAny(normalized, ["photo", "memory", "照片", "相册", "地点"])) {
+    return {
+      intent: "photo-memory",
+      action: "focus-photo",
+      photoId: "college-park-2024-04-23",
+      response: "I found the photo memories on the globe. Hover the city labels to preview them; College Park is the clearest marker right now."
+    };
   }
 
   if (includesAny(normalized, ["where is the moon", "moon"])) {
@@ -72,11 +114,20 @@ export function resolveEarthCommand(input, snapshot) {
     };
   }
 
+  if (includesAny(normalized, ["again", "more", "继续", "再说", "还有呢"]) && previousTurn) {
+    return {
+      intent: "continue",
+      action: "look-up",
+      focus: "sky",
+      response: `Continuing from the last turn: ${previousTurn.assistantText || "I will keep the sky context open and stay with this thread."}`
+    };
+  }
+
   return {
     intent: "unknown",
     action: "look-up",
     focus: "sky",
-    response: "I can show the moon, the sun, sunset, the night side, or the sunlight edge."
+    response: "The model is offline, so I am using local rules. Try asking about the moon, sun, sunset, night side, sunlight, photos, or modes."
   };
 }
 

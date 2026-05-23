@@ -1,15 +1,11 @@
 const AUDIO_LAYERS = {
-  base: {
-    src: "/audio/base-ambient.mp3",
-    baseVolume: 0.32
+  bachDay: {
+    src: "/audio/Gregor Quendel - Bach - Prelude and Fugue in C minor - BWV 847 - The Well-Tempered Clavier, No. 2 - Arranged for Strings.mp3.mp3",
+    baseVolume: 0.34
   },
-  night: {
-    src: "/audio/night-piano.mp3",
-    baseVolume: 0.28
-  },
-  wind: {
-    src: "/audio/wind-cloud.mp3",
-    baseVolume: 0.24
+  thaisNight: {
+    src: "/audio/Nicola Benedetti, violin; Julien Quentin, piano - Méditation from Thaïs.mp3",
+    baseVolume: 0.34
   }
 };
 
@@ -139,24 +135,42 @@ export function createSoundscapeEngine() {
   };
 }
 
-export function getSoundscapeTargets(snapshot, lookUpMode) {
-  const cloudCover = snapshot.weather?.cloudCover ?? 30;
-  const windSpeed = snapshot.weather?.windSpeed ?? 8;
-  const sunAltitude = snapshot.telemetry?.solar?.altitude ?? 18;
-  const moonAltitude = snapshot.telemetry?.lunar?.altitude ?? -8;
-
-  const proximity = lookUpMode ? 1.18 : 1;
-  const cloudEnergy = Math.max(cloudCover / 100, Math.min(windSpeed / 38, 1));
-  const nightEnergy = sunAltitude < 0 ? 0.74 : 0.12;
-  const moonEnergy = moonAltitude > 0 ? 0.18 : 0;
+export function getSoundscapeTargets(snapshot, lookUpMode, now = new Date()) {
+  const localHour = getLocalHour(now, snapshot.longitude);
+  const dayEnergy = getDayEnergy(localHour);
+  const nightEnergy = 1 - dayEnergy;
+  const proximity = lookUpMode ? 1.12 : 1;
 
   return {
-    base: 0.72 * proximity,
-    night: Math.min(1, (nightEnergy + moonEnergy + (lookUpMode ? 0.18 : 0)) * proximity),
-    wind: Math.min(1, (0.1 + cloudEnergy * 0.86) * proximity)
+    bachDay: dayEnergy * proximity,
+    thaisNight: nightEnergy * proximity
   };
 }
 
 function clamp01(value) {
   return Math.min(Math.max(value, 0), 1);
+}
+
+function getLocalHour(date, longitude) {
+  const offsetMinutes = typeof longitude === "number" && !Number.isNaN(longitude)
+    ? Math.round((longitude / 15) * 60)
+    : 0;
+  const localDate = new Date(date.getTime() + offsetMinutes * 60000);
+
+  return (
+    localDate.getUTCHours() +
+    localDate.getUTCMinutes() / 60 +
+    localDate.getUTCSeconds() / 3600
+  );
+}
+
+function getDayEnergy(localHour) {
+  const dawn = smoothstep(5.4, 7.2, localHour);
+  const dusk = 1 - smoothstep(18.0, 20.0, localHour);
+  return clamp01(Math.min(dawn, dusk));
+}
+
+function smoothstep(edge0, edge1, value) {
+  const t = clamp01((value - edge0) / (edge1 - edge0));
+  return t * t * (3 - 2 * t);
 }

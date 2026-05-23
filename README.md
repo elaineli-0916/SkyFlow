@@ -46,6 +46,67 @@ Implemented:
 - Look Up Mode with local sky HUD, user-location focus, and ambient sky narration
 - Earth Command text input that can answer fixed sky intents and drive globe camera actions
 
+## Code Structure
+
+Current frontend structure:
+
+```text
+src/
+  App.jsx                         # top-level experience shell and mode/state wiring
+  main.jsx                        # React entrypoint
+  styles.css                      # global visual system and HUD styling
+  components/
+    EarthCanvas.jsx               # React Three Fiber globe, lighting, camera, markers
+    EarthCommandInput.jsx         # text command input, future multimodal entry point
+    LookUpPanel.jsx               # local sky HUD for Look Up Mode
+    SoundscapeToggle.jsx          # minimal soundscape on/off control
+  hooks/
+    useLookUpMode.js              # Look Up Mode state and derived sky snapshot
+    useSoundscape.js              # soundscape lifecycle and telemetry-driven volume updates
+  services/
+    audioService.js               # local looped audio layers and fade engine
+    earthCommandService.js        # fixed command intent parser and UI action mapping
+    earthDataService.js           # compatibility wrapper for UI environment snapshots
+    earthTelemetry.js             # location, weather, solar/lunar telemetry source layer
+    lookUpService.js              # sky direction/altitude descriptions and narration
+    narration.js                  # ambient companion narration
+  utils/
+    astro.js                      # local approximate solar/lunar math
+    format.js                     # display formatting helpers
+```
+
+Recommended backend structure for the next LLM phase:
+
+```text
+server/
+  index.js                        # HTTP server entrypoint
+  routes/
+    asr.js                        # POST /api/asr/transcribe for microphone speech-to-text
+    earthChat.js                  # POST /api/earth/chat
+    memory.js                     # optional memory read/write endpoints
+  services/
+    asrService.js                 # DashScope Paraformer microphone ASR bridge
+    llmService.js                 # model provider adapter and streaming response handling
+    earthContextService.js        # converts EarthTelemetry + UI mode into model context
+    toolService.js                # maps model/tool intents to UI actions
+    memoryService.js              # long-term user memory abstraction
+  prompts/
+    earthCompanion.md             # system prompt for ambient Earth companion behavior
+    toolPolicy.md                 # rules for when the model may drive the globe UI
+  storage/
+    memoryStore.js                # initial local/file/db-backed memory implementation
+```
+
+Frontend/backend boundary:
+
+- The browser should not hold provider API keys.
+- `EarthCommandInput` should call the backend for open-ended LLM turns.
+- Microphone input should call `/api/asr/transcribe` first, then send the transcript through `EarthCommandInput` as the user turn.
+- The backend response should return both natural language and optional UI actions.
+- UI actions should stay structured, for example `open_look_up`, `focus_moon`, `show_night_side`, `show_sunlight`, or `set_mode`.
+- `EarthTelemetry` should be sent as compact context, not as raw UI state.
+- Long-term memory should begin as a small explicit profile/preferences store before adding embeddings or retrieval.
+
 ## Known Issues
 
 ### Soundscape Local Audio Assets
@@ -160,6 +221,7 @@ Do not make NASA GIBS a hard dependency for the MVP. First use a semi-transparen
 - Added ambient Look Up narration such as moon direction, cloud cover, and local daylight context.
 - Added Earth Command input with the placeholder `Ask the Earth...`.
 - Added fixed command intents for moon, sun, sky, sunset, night side, and sunlight.
+- Added microphone input for Ask mode with DashScope Paraformer ASR transcription before routing into Earth Command.
 - Connected Earth Command actions to globe behavior so commands can open Look Up Mode or move the camera to night/sunlight views.
 - Added a subtle sunlight terminator emphasis for the sunlight command.
 - Verified `npm run build` passes; Vite still reports the expected large Three.js chunk warning.
@@ -227,6 +289,9 @@ npm run build
 
 ## Next Steps
 
+- Add the LLM backend scaffold under `server/` with a first `POST /api/earth/chat` endpoint.
+- Move Earth Command from fixed local intents toward backend responses that include `{ text, actions }`.
+- Add a minimal memory model for stable user preferences, location assumptions, and recurring sky interests.
 - Add the three local loopable audio files under `public/audio/` and tune layer volumes by ear.
 - Run visual QA in browser across desktop and mobile sizes for Look Up HUD, Earth Command, and right-side controls.
 - Improve the Look Up camera move so it feels more like a guided orbital approach and less like a direct reposition.

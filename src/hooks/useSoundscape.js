@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createSoundscapeEngine, getSoundscapeTargets } from "../services/audioService.js";
 
-export function useSoundscape(snapshot, lookUpMode) {
+export function useSoundscape(snapshot, lookUpMode, now) {
   const engineRef = useRef(null);
   const [enabled, setEnabled] = useState(false);
   const [level, setLevel] = useState(0);
@@ -19,11 +19,11 @@ export function useSoundscape(snapshot, lookUpMode) {
     if (!engineRef.current) return;
 
     if (enabled) {
-      engineRef.current.setTargets(getSoundscapeTargets(snapshot, lookUpMode));
+      engineRef.current.setTargets(getSoundscapeTargets(snapshot, lookUpMode, now));
     } else {
       engineRef.current.stop();
     }
-  }, [enabled, lookUpMode, snapshot]);
+  }, [enabled, lookUpMode, now, snapshot]);
 
   useEffect(() => {
     const id = window.setInterval(() => {
@@ -39,7 +39,7 @@ export function useSoundscape(snapshot, lookUpMode) {
 
     if (nextEnabled && engineRef.current) {
       await engineRef.current.start();
-      engineRef.current.setTargets(getSoundscapeTargets(snapshot, lookUpMode));
+      engineRef.current.setTargets(getSoundscapeTargets(snapshot, lookUpMode, now));
     }
   }
 

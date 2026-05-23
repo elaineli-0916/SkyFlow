@@ -46,6 +46,64 @@ MVP 的目标是在用户打开后的 10 秒内，让地球看起来是活着的
 - Look Up Mode，本地天空 HUD、用户位置聚焦和环境式天空叙事
 - Earth Command 文本输入，可回答固定天空意图并驱动地球相机动作
 
+## 代码结构
+
+当前前端结构：
+
+```text
+src/
+  App.jsx                         # 顶层体验壳，负责模式和状态连接
+  main.jsx                        # React 入口
+  styles.css                      # 全局视觉系统和 HUD 样式
+  components/
+    EarthCanvas.jsx               # React Three Fiber 地球、光照、相机、标记点
+    EarthCommandInput.jsx         # 文本命令输入，后续多模态入口
+    LookUpPanel.jsx               # Look Up Mode 的本地天空 HUD
+    SoundscapeToggle.jsx          # 极简声景开关
+  hooks/
+    useLookUpMode.js              # Look Up Mode 状态和派生天空快照
+    useSoundscape.js              # 声景生命周期和基于 telemetry 的音量更新
+  services/
+    audioService.js               # 本地循环音频层和 fade 引擎
+    earthCommandService.js        # 固定命令意图解析和 UI action 映射
+    earthDataService.js           # UI 环境快照兼容包装
+    earthTelemetry.js             # 位置、天气、太阳/月亮 telemetry 数据层
+    lookUpService.js              # 天空方向/高度解释和叙事生成
+    narration.js                  # 环境式 companion narration
+  utils/
+    astro.js                      # 本地近似太阳/月亮计算
+    format.js                     # 展示格式化工具
+```
+
+下一阶段 LLM 后端建议结构：
+
+```text
+server/
+  index.js                        # HTTP server 入口
+  routes/
+    earthChat.js                  # POST /api/earth/chat
+    memory.js                     # 可选的记忆读写 endpoints
+  services/
+    llmService.js                 # 模型 provider adapter 和流式响应处理
+    earthContextService.js        # 将 EarthTelemetry + UI mode 转成模型上下文
+    toolService.js                # 将模型/tool intents 映射成 UI actions
+    memoryService.js              # 长期用户记忆抽象
+  prompts/
+    earthCompanion.md             # 环境式 Earth companion system prompt
+    toolPolicy.md                 # 模型何时可以驱动地球 UI 的规则
+  storage/
+    memoryStore.js                # 初始本地/file/db-backed memory 实现
+```
+
+前后端边界：
+
+- 浏览器端不要持有模型 provider API key。
+- `EarthCommandInput` 后续应调用后端处理开放式 LLM 对话。
+- 后端响应应同时返回自然语言和可选 UI actions。
+- UI actions 保持结构化，例如 `open_look_up`、`focus_moon`、`show_night_side`、`show_sunlight`、`set_mode`。
+- `EarthTelemetry` 应作为压缩上下文发送给模型，不要直接发送完整 UI state。
+- 长期记忆先从小型显式用户档案/偏好/稳定兴趣开始，再考虑 embeddings 或检索系统。
+
 ## 已知问题
 
 ### Soundscape 本地音频素材
@@ -227,6 +285,9 @@ npm run build
 
 ## 下一步
 
+- 在 `server/` 下新增 LLM 后端 scaffold，并先实现 `POST /api/earth/chat`。
+- 将 Earth Command 从本地固定 intents 逐步迁移为后端返回 `{ text, actions }`。
+- 新增最小长期记忆模型，先记录用户稳定偏好、位置假设和反复关注的天空兴趣。
 - 将三条可循环播放的本地音频文件加入 `public/audio/`，并按实际听感调整各层音量。
 - 在浏览器中做桌面和移动端视觉 QA，重点检查 Look Up HUD、Earth Command 和右侧控制组。
 - 继续优化 Look Up 相机运动，让它更像被引导的轨道靠近，而不是直接重新定位。
