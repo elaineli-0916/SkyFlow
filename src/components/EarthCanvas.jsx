@@ -587,20 +587,21 @@ function AxisLine() {
 function MoonMarker({ now }) {
   const moonRef = useRef();
   const phase = ((now.getDate() % 29.53) / 29.53) * Math.PI * 2;
+  const orbitRadius = 3.35;
 
   useFrame(({ clock }) => {
     if (!moonRef.current) return;
     const elapsed = clock.getElapsedTime();
-    moonRef.current.position.x = Math.cos(phase + elapsed * 0.006) * 4.8;
+    moonRef.current.position.x = Math.cos(phase + elapsed * 0.006) * orbitRadius;
     moonRef.current.position.y = 1.2 + Math.sin(phase * 0.7) * 0.55;
-    moonRef.current.position.z = Math.sin(phase + elapsed * 0.006) * 4.8;
+    moonRef.current.position.z = Math.sin(phase + elapsed * 0.006) * orbitRadius;
     moonRef.current.rotation.y += 0.001;
   });
 
   return (
-    <mesh ref={moonRef} position={[4.2, 1.2, -2.4]}>
-      <sphereGeometry args={[0.075, 32, 32]} />
-      <meshStandardMaterial color="#d8d6cb" roughness={0.88} emissive="#726f67" emissiveIntensity={0.08} />
+    <mesh ref={moonRef} position={[orbitRadius, 1.2, -1.7]}>
+      <sphereGeometry args={[0.2, 40, 40]} />
+      <meshStandardMaterial color="#d8d6cb" roughness={0.88} emissive="#8f8a7f" emissiveIntensity={0.16} />
     </mesh>
   );
 }
