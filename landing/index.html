@@ -1,0 +1,561 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#030712" />
+    <meta
+      name="description"
+      content="SkyFlow: An AI Native Earth Companion. AI Native 沉浸式实时地球陪伴界面，让云、月、光照与天气成为一种诗意而恒常的陪伴。"
+    />
+    <title>SkyFlow: An AI Native Earth Companion</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #030712;
+        --bg-soft: #07111f;
+        --ink: #edf6ff;
+        --muted: #a8b7c7;
+        --dim: #6f8093;
+        --line: rgba(188, 220, 255, 0.18);
+        --blue: #8fd5ff;
+        --gold: #f0d492;
+        --cyan: #b6fff2;
+        --max: 900px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background:
+          radial-gradient(circle at 18% 8%, rgba(64, 137, 209, 0.2), transparent 27rem),
+          radial-gradient(circle at 86% 18%, rgba(240, 212, 146, 0.12), transparent 22rem),
+          radial-gradient(circle at 54% 98%, rgba(61, 181, 199, 0.16), transparent 30rem),
+          linear-gradient(180deg, #02040a 0%, #06101c 46%, #030712 100%);
+        color: var(--ink);
+        font-family:
+          "Iowan Old Style", "Songti SC", "Noto Serif CJK SC", "Source Han Serif SC",
+          Georgia, serif;
+        letter-spacing: 0;
+      }
+
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        background-image:
+          radial-gradient(circle, rgba(255, 255, 255, 0.42) 0 1px, transparent 1.5px),
+          radial-gradient(circle, rgba(255, 255, 255, 0.25) 0 1px, transparent 1.5px);
+        background-position:
+          20px 30px,
+          130px 90px;
+        background-size:
+          190px 190px,
+          270px 270px;
+        opacity: 0.25;
+        mask-image: linear-gradient(to bottom, black, transparent 72%);
+      }
+
+      .page {
+        position: relative;
+        overflow: hidden;
+        min-height: 100vh;
+      }
+
+      .page::before {
+        content: "";
+        position: absolute;
+        top: 5rem;
+        left: 50%;
+        width: min(76vw, 860px);
+        aspect-ratio: 1;
+        transform: translateX(-50%);
+        border-radius: 50%;
+        background:
+          radial-gradient(circle at 38% 34%, rgba(158, 222, 255, 0.18), transparent 24%),
+          radial-gradient(circle at 50% 50%, rgba(15, 84, 133, 0.08), transparent 48%),
+          linear-gradient(110deg, transparent 0 48%, rgba(187, 240, 255, 0.18) 51%, transparent 56%);
+        border: 1px solid rgba(178, 222, 255, 0.12);
+        box-shadow:
+          0 0 90px rgba(86, 175, 230, 0.2),
+          inset -32px -42px 90px rgba(0, 0, 0, 0.44);
+        opacity: 0.48;
+        filter: blur(0.2px);
+      }
+
+      .page::after {
+        content: "";
+        position: absolute;
+        top: 7rem;
+        right: clamp(1.5rem, 11vw, 10rem);
+        width: clamp(3.2rem, 7vw, 5.2rem);
+        aspect-ratio: 1;
+        border-radius: 50%;
+        background:
+          radial-gradient(circle at 38% 34%, #fff7dc 0 9%, transparent 10%),
+          radial-gradient(circle at 56% 62%, rgba(130, 103, 74, 0.32) 0 8%, transparent 9%),
+          radial-gradient(circle at 44% 44%, #f5e8bd 0 42%, #bda879 70%, #655d52 100%);
+        box-shadow:
+          0 0 34px rgba(240, 212, 146, 0.28),
+          0 0 90px rgba(240, 212, 146, 0.1);
+        opacity: 0.78;
+      }
+
+      a {
+        color: inherit;
+      }
+
+      .hero,
+      .demo,
+      .essay {
+        position: relative;
+        width: min(calc(100% - 2rem), var(--max));
+        margin-inline: auto;
+      }
+
+      .hero {
+        min-height: 88vh;
+        display: grid;
+        align-content: center;
+        justify-items: center;
+        padding: 5.5rem 0 4rem;
+        text-align: center;
+      }
+
+      .kicker {
+        margin: 0 0 1.4rem;
+        color: var(--cyan);
+        font: 600 0.76rem/1.2 ui-sans-serif, system-ui, sans-serif;
+        text-transform: uppercase;
+        letter-spacing: 0.18em;
+      }
+
+      h1 {
+        margin: 0;
+        max-width: 820px;
+        color: #f6fbff;
+        font-family:
+          "Optima", "Avenir Next", "Songti SC", "Noto Serif CJK SC", Georgia, serif;
+        font-size: clamp(3.2rem, 8vw, 6.8rem);
+        font-weight: 500;
+        line-height: 0.95;
+        text-wrap: balance;
+        text-shadow: 0 0 54px rgba(114, 199, 255, 0.3);
+      }
+
+      .subtitle {
+        margin: 1.6rem auto 0;
+        max-width: 720px;
+        color: #d8e9f7;
+        font-size: clamp(1.05rem, 2.2vw, 1.35rem);
+        line-height: 1.9;
+        text-wrap: balance;
+      }
+
+      .links {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 0.8rem;
+        margin-top: 2.25rem;
+        font-family: ui-sans-serif, system-ui, sans-serif;
+      }
+
+      .button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 2.75rem;
+        padding: 0.72rem 1.05rem;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: rgba(6, 18, 32, 0.54);
+        color: #eff8ff;
+        font-size: 0.92rem;
+        font-weight: 600;
+        text-decoration: none;
+        box-shadow: 0 16px 50px rgba(0, 0, 0, 0.18);
+        backdrop-filter: blur(18px);
+        transition:
+          border-color 180ms ease,
+          background 180ms ease,
+          transform 180ms ease;
+      }
+
+      .button:hover {
+        transform: translateY(-1px);
+        border-color: rgba(182, 255, 242, 0.55);
+        background: rgba(17, 40, 61, 0.72);
+      }
+
+      .scroll-note {
+        position: absolute;
+        bottom: 2rem;
+        color: var(--dim);
+        font: 0.82rem/1.5 ui-sans-serif, system-ui, sans-serif;
+      }
+
+      .demo {
+        padding: 1rem 0 5.5rem;
+      }
+
+      .section-label {
+        margin: 0 0 1rem;
+        color: var(--blue);
+        font: 700 0.82rem/1.2 ui-sans-serif, system-ui, sans-serif;
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+      }
+
+      .demo-card {
+        display: grid;
+        min-height: 190px;
+        place-items: center;
+        padding: clamp(1.5rem, 5vw, 3rem);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background:
+          linear-gradient(135deg, rgba(143, 213, 255, 0.1), transparent 42%),
+          linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.015));
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.06),
+          0 24px 70px rgba(0, 0, 0, 0.26);
+      }
+
+      .demo-card .button {
+        min-width: 12rem;
+      }
+
+      .essay {
+        padding: 0 0 7rem;
+      }
+
+      article {
+        padding-top: 3.5rem;
+        border-top: 1px solid var(--line);
+      }
+
+      h2 {
+        margin: 0 0 2.2rem;
+        max-width: 760px;
+        color: #f7fbff;
+        font-size: clamp(2rem, 4.8vw, 3.65rem);
+        font-weight: 500;
+        line-height: 1.2;
+        text-wrap: balance;
+      }
+
+      p {
+        margin: 0 0 1.35rem;
+        color: #d5e0ea;
+        font-size: clamp(1.04rem, 1.8vw, 1.17rem);
+        line-height: 2.05;
+      }
+
+      p.lead {
+        color: #ecf7ff;
+        font-size: clamp(1.16rem, 2.1vw, 1.38rem);
+        line-height: 1.95;
+      }
+
+      strong {
+        color: #fff9df;
+        font-weight: 600;
+      }
+
+      .break {
+        display: block;
+        width: 3.8rem;
+        height: 1px;
+        margin: 3.2rem 0;
+        background: linear-gradient(90deg, var(--gold), transparent);
+      }
+
+      .closing {
+        margin-top: 3rem;
+        padding-left: 1.4rem;
+        border-left: 1px solid rgba(240, 212, 146, 0.42);
+      }
+
+      footer {
+        position: relative;
+        width: min(calc(100% - 2rem), var(--max));
+        margin: 0 auto;
+        padding: 0 0 3rem;
+        color: var(--dim);
+        font: 0.86rem/1.6 ui-sans-serif, system-ui, sans-serif;
+      }
+
+      @media (max-width: 620px) {
+        .hero {
+          min-height: 84vh;
+          padding-top: 4rem;
+        }
+
+        h1 {
+          font-size: clamp(2.75rem, 16vw, 4.4rem);
+        }
+
+        .links {
+          width: 100%;
+          flex-direction: column;
+          align-items: stretch;
+        }
+
+        .button {
+          width: 100%;
+        }
+
+        .scroll-note {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <section class="hero" aria-labelledby="page-title">
+        <p class="kicker">Project Page</p>
+        <h1 id="page-title">SkyFlow: An AI Native Earth Companion</h1>
+        <p class="subtitle">
+          AI Native 沉浸式实时地球陪伴界面，让云、月、光照与天气成为一种诗意而恒常的陪伴。
+        </p>
+        <nav class="links" aria-label="Project links">
+          <a class="button" href="https://github.com/elaineli-0916/SkyFlow">GitHub</a>
+          <a class="button" href="https://sky-flow-eosin.vercel.app/">Enter SkyFlow</a>
+          <a class="button" href="#todo-demo-video">Watch Demo</a>
+        </nav>
+        <p class="scroll-note">Clouds, moonlight, memory, and a slowly turning Earth.</p>
+      </section>
+
+      <section class="demo" id="todo-demo-video" aria-labelledby="demo-title">
+        <p class="section-label">3-Minute Demo</p>
+        <div class="demo-card">
+          <a class="button" href="#todo-demo-video" id="demo-title">Watch Demo Video</a>
+        </div>
+      </section>
+
+      <section class="essay" aria-labelledby="essay-title">
+        <article>
+          <h2 id="essay-title">SkyFlow：关于观察、陪伴与天空记忆的地球之窗</h2>
+
+          <p class="lead">
+            我做 SkyFlow，是从一些很日常、但后来一直留在我心里的观察开始的。
+          </p>
+
+          <p>
+            这些年我一直有一个习惯：会在相册里专门留下日出、日落、云和月亮。它们不是旅行照，也不一定发生在什么特别的日子里。更多时候，只是我在某个普通的清晨、傍晚，或者走路的间隙，突然抬头看见天空正在变化，就把它拍了下来。
+          </p>
+
+          <p>
+            这种观察并不宏大。它有时候只是一片云经过楼顶，一道夕阳落在建筑边缘，或者一轮月亮出现在意想不到的方向。但我很喜欢这些时刻。因为它们提醒我，真实的世界一直在发生，而我们其实很少停下来感知它。
+          </p>
+
+          <p>
+            我对月亮的兴趣，是从一次很具体的经历开始的。
+          </p>
+
+          <p>
+            有一天傍晚，在马里兰的实验室结束了一天的工作后，我在地平线附近看到一轮刚刚升起的月亮。它非常大，像一个悬在远处的圆盘，甚至像一块安静发光的广告牌。我当时第一反应是：那是什么？
+          </p>
+
+          <p>
+            过了十几分钟，我跑到楼顶想再看一次它的时候，它已经升得很高，也不再有刚才那种贴近地平线时的震撼感。
+          </p>
+
+          <p>
+            第二天，我想在同一个时间、同一个地方再等一次月亮。但它没有出现。
+          </p>
+
+          <p>
+            那一刻我很直观地意识到：月亮并不是每天都按人的时间表升起。月亮绕地球运行的周期大约是 29.5 天，因此它每天出现的时间都会比前一天向后推移大约 50 分钟。它有自己的周期，自己的轨道，自己的迟到和抵达。它不服从我们的日程，也不为了我们的期待停留。有时候它在夜晚出现，有时候它会和太阳一起停在同一片天空里；有时候你抬头能看见它，有时候它其实还在地平线下方，正在慢慢靠近。
+          </p>
+
+          <p>
+            这件事让我觉得很迷人。
+          </p>
+
+          <p>
+            因为很多自然规律其实一直在那里：日出日落，月升月落，云层流动，光照变化。它们并不神秘，也不遥远，但它们有一种比人的情绪、任务和得失更大的节律。只是我们生活在屏幕、消息和日程里，很少再抬头看它们。
+          </p>
+
+          <p>
+            云带给我的感受又不太一样。
+          </p>
+
+          <p>
+            之前我做过一段和卫星云图相关的科学研究。那时候我会从更高的尺度去看云。云不是天空里随便飘过的一团白色，而是一种真实的大气结构。它有形态，有水汽，有运动方向，也会产生天气效应。
+          </p>
+
+          <p>
+            但从人的眼睛去看，云又天然是很美的。
+          </p>
+
+          <p>
+            它没有固定边界，可以聚拢、散开、变暗，也可以被夕阳染亮。它像一种正在变化的、悬浮在真实世界里的艺术。
+          </p>
+
+          <p>
+            所以我会觉得，云很适合成为一种陪伴。
+          </p>
+
+          <p>
+            它不像人一样说话，也不像工具一样给你明确答案。它只是经过，移动，舒展，消散。你追踪一朵云，其实也是在追踪真实世界正在发生的事情。
+          </p>
+
+          <p>
+            人在很忙的时候，不妨抬头看看天。
+          </p>
+
+          <p>
+            云卷云舒不是逃离现实，而是看见现实还有更大的节律。
+          </p>
+
+          <p>
+            这也是我想做 SkyFlow 的原因。
+          </p>
+
+          <p>
+            SkyFlow 不是一个传统天气 App，也不是一个聊天机器人。我不希望它只是告诉用户今天几度、几点下雨、风速多少。它更像一个可以一直开着的地球窗口，一个安静的、实时变化的陪伴界面。
+          </p>
+
+          <p>
+            用户打开它，会看到一个漂浮在太空中的地球。
+          </p>
+
+          <p>
+            地球缓慢转动，云层经过表面，白昼和黑夜在边界上交换。用户可以看到自己所在的位置，也可以看到月亮现在在哪里，太阳的高度角是多少，云量如何，光照正在怎样经过地球。
+          </p>
+
+          <p>
+            这些信息本身是真实的，但它们不应该被呈现成冰冷的数据面板。
+          </p>
+
+          <p>
+            我想让它们以一种更干净、更可视化、更有呼吸感的方式出现。即使用户没有物理或天文背景，也可以很轻松地感受到：原来月亮会在不同的夜晚从不同的方向升起与落下，有些夜晚甚至完全不会出现在天空中；原来太阳与月亮有时会同时悬挂在天际；原来云层始终在缓慢流动；原来当地进入夜晚时，地球的另一侧正悄悄迎来清晨。
+          </p>
+
+          <p>
+            对我来说，自然本身就是一种陪伴。
+          </p>
+
+          <p>
+            它不主动安慰你，也不急着回答你，但它恒常地存在着。地球在转动，月亮在移动，光照在海洋和大陆之间迁移，云沿着风的方向缓慢改写天空。
+          </p>
+
+          <span class="break" aria-hidden="true"></span>
+
+          <p>
+            所以 SkyFlow 想提供的陪伴，不是一句空泛的安慰，而是一种更大的参照。
+          </p>
+
+          <p>
+            它像是在提醒你：你所在的地方只是地球上的一个小点，但此刻的光、云和月亮，正在经过这里。有人进入夜晚，有人迎来清晨；有些云正在靠近，有些光已经离开；月亮也许还在地平线下方，但它正在自己的轨道上慢慢抵达。
+          </p>
+
+          <p>
+            我也不希望 SkyFlow 只是一个被动观看的界面。
+          </p>
+
+          <p>
+            陪伴本身是需要交流窗口的。人不一定总是想和另一个人说话，但很多时候，我们确实需要一个地方，把自己正在看见的东西、正在感受到的东西，记录下来。
+          </p>
+
+          <p>
+            所以在 SkyFlow 里，Ask 不只是一个问答入口。
+          </p>
+
+          <p>
+            它可以接收文字、语音，也可以接收图片。用户可以问：“今晚月亮在哪里？”也可以上传一张自己刚刚拍到的云、一场日落、一片天空，并自动捕捉照片的时间戳和地点信息。添加的测试照片也来自于我多年求学生活留下的足迹，比如飞机飞过晨昏交界时的天空、北冰洋上的日出等。大模型会负责理解这些输入，分析这是什么样的云、光线处在什么时间段、照片里可能对应怎样的天气状态，并自动总结内容、标记在地图上，也可以把它转化成一段简短的记录。
+          </p>
+
+          <p>
+            这时候，AI 的作用就不只是回答问题，而是帮助人<strong>保存感知</strong>。
+          </p>
+
+          <p>
+            我觉得这是陪伴很重要的一部分。真正长期存在的陪伴，不只是此刻对你说一句话，而是<strong>它记得你曾经看见过什么，关心过什么，在哪些地方停下来过</strong>。
+          </p>
+
+          <p>
+            如果一个人拍过很多次日出、日落、云卷云舒、月亮升起，那这些照片其实不只是照片。
+          </p>
+
+          <p>
+            它们是一种生活轨迹，也是一种注意力的地图。它们记录了这个人如何看世界，什么时候会抬头，在哪些时刻被自然打动。
+          </p>
+
+          <p>
+            所以我希望这些记录也能回到可视化地球上。
+          </p>
+
+          <p>
+            用户看过的天空、上传过的月亮、记录过的云和日落，可以被标注在地球表面：某个城市的一次黄昏，某片海边的一朵云，某个夜晚刚刚升起的月亮。久而久之，这个地球不再只是一个公共的地球，也会变成一个带有个人记忆的地球。
+          </p>
+
+          <p>
+            它仍然是真实的，有天气、光照、云层和月亮轨道；但它也开始有了用户自己的痕迹。
+          </p>
+
+          <p>
+            这也是我理解的 AI Native 陪伴：<strong>不是让 AI 替代真实世界，而是让 AI 帮助我们更好地记录、理解和返回真实世界。</strong>
+          </p>
+
+          <p>
+            它把人的观察变成记忆，把记忆放回地球，把地球变成一种可以持续陪伴的界面。
+          </p>
+
+          <p>
+            所以 SkyFlow 对我来说有三层意义。
+          </p>
+
+          <p>
+            第一层是<strong>观察</strong>。<br />
+            它让人重新看见云、月亮、光照和地球的流动。
+          </p>
+
+          <p>
+            第二层是<strong>陪伴</strong>。<br />
+            它不急着说服你，也不急着安慰你，只是让真实世界的变化安静地在你身边存在。
+          </p>
+
+          <p>
+            第三层是<strong>记录</strong>。<br />
+            它保存你看过的天空，记住你反复关注的自然现象，也把这些瞬间重新标注在这个会转动的地球上。
+          </p>
+
+          <div class="closing">
+            <p>
+              观察让人重新连接世界。<br />
+              陪伴让这种连接变得恒常。<br />
+              记录让这种连接真正属于你。
+            </p>
+
+            <p>
+              我想让 SkyFlow 成为一个提醒人重新抬头的界面。
+            </p>
+
+            <p>
+              提醒我们，云还在走，月亮还会回来，光正在地球另一侧升起。<br />
+              提醒我们，生活不只发生在屏幕里，也发生在真实的天空、风、云和光照之间。<br />
+              提醒我们，世界一直在流动，而我们也正在其中。
+            </p>
+          </div>
+        </article>
+      </section>
+    </main>
+
+    <footer>
+      SkyFlow is a quiet public project page for the Earth companion prototype.
+    </footer>
+  </body>
+</html>

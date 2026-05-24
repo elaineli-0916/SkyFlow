@@ -34,7 +34,7 @@ function EarthCanvas({ snapshot, now, showClouds, showGrid, resetViewSignal, mod
             photoMarkers={photoMarkers}
             onPhotoPreviewChange={onPhotoPreviewChange}
           />
-          <MoonMarker now={now} />
+          <MoonMarker snapshot={snapshot} now={now} />
           <CameraControls
             snapshot={snapshot}
             resetViewSignal={resetViewSignal}
@@ -584,26 +584,73 @@ function AxisLine() {
   );
 }
 
-function MoonMarker({ now }) {
+function MoonMarker({ snapshot, now }) {
   const moonRef = useRef();
   const phase = ((now.getDate() % 29.53) / 29.53) * Math.PI * 2;
   const orbitRadius = 3.35;
+  const moonTarget = useMemo(() => {
+    return getLocalMoonTarget(snapshot, orbitRadius);
+  }, [orbitRadius, snapshot.latitude, snapshot.longitude, snapshot.telemetry?.lunar?.altitude, snapshot.telemetry?.lunar?.azimuth]);
 
   useFrame(({ clock }) => {
     if (!moonRef.current) return;
     const elapsed = clock.getElapsedTime();
-    moonRef.current.position.x = Math.cos(phase + elapsed * 0.006) * orbitRadius;
-    moonRef.current.position.y = 1.2 + Math.sin(phase * 0.7) * 0.55;
-    moonRef.current.position.z = Math.sin(phase + elapsed * 0.006) * orbitRadius;
+    if (moonTarget) {
+      moonRef.current.position.lerp(moonTarget.position, 0.045);
+      moonRef.current.material.opacity = THREE.MathUtils.lerp(moonRef.current.material.opacity, moonTarget.opacity, 0.06);
+      moonRef.current.scale.setScalar(THREE.MathUtils.lerp(moonRef.current.scale.x, moonTarget.scale, 0.05));
+    } else {
+      moonRef.current.position.x = Math.cos(phase + elapsed * 0.006) * orbitRadius;
+      moonRef.current.position.y = 1.2 + Math.sin(phase * 0.7) * 0.55;
+      moonRef.current.position.z = Math.sin(phase + elapsed * 0.006) * orbitRadius;
+      moonRef.current.material.opacity = 0.9;
+      moonRef.current.scale.setScalar(1);
+    }
     moonRef.current.rotation.y += 0.001;
   });
 
   return (
     <mesh ref={moonRef} position={[orbitRadius, 1.2, -1.7]}>
       <sphereGeometry args={[0.2, 40, 40]} />
-      <meshStandardMaterial color="#d8d6cb" roughness={0.88} emissive="#8f8a7f" emissiveIntensity={0.16} />
+      <meshStandardMaterial color="#d8d6cb" roughness={0.88} emissive="#8f8a7f" emissiveIntensity={0.16} transparent opacity={0.9} />
     </mesh>
   );
+}
+
+function getLocalMoonTarget(snapshot, radius) {
+  const altitude = snapshot.telemetry?.lunar?.altitude;
+  const azimuth = snapshot.telemetry?.lunar?.azimuth;
+  if (!Number.isFinite(altitude) || !Number.isFinite(azimuth)) return null;
+
+  const zenith = latLonToVector3(snapshot.latitude, snapshot.longitude, 1)
+    .applyAxisAngle(new THREE.Vector3(0, 0, 1), EARTH_AXIAL_TILT)
+    .normalize();
+  const worldUp = new THREE.Vector3(0, 1, 0);
+  const east = new THREE.Vector3().crossVectors(worldUp, zenith);
+  if (east.lengthSq() < 0.0001) east.set(1, 0, 0);
+  east.normalize();
+  const north = new THREE.Vector3().crossVectors(zenith, east).normalize();
+  const renderedAltitude = clamp(altitude, -12, 68);
+  const altitudeRad = THREE.MathUtils.degToRad(renderedAltitude);
+  const azimuthRad = THREE.MathUtils.degToRad(azimuth);
+  const horizonDirection = north
+    .clone()
+    .multiplyScalar(Math.cos(azimuthRad))
+    .add(east.clone().multiplyScalar(Math.sin(azimuthRad)))
+    .normalize();
+  const skyDirection = zenith
+    .clone()
+    .multiplyScalar(Math.sin(altitudeRad))
+    .add(horizonDirection.multiplyScalar(Math.cos(altitudeRad)))
+    .normalize();
+  const opacity = altitude >= 0 ? 0.96 : altitude > -12 ? 0.58 : 0.34;
+  const scale = altitude >= 0 ? 1 : altitude > -12 ? 0.92 : 0.82;
+
+  return {
+    position: skyDirection.multiplyScalar(radius),
+    opacity,
+    scale
+  };
 }
 
 function latLonToVector3(lat, lon, radius) {

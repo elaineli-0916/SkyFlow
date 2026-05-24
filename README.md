@@ -1,305 +1,176 @@
-# SkyFlow Earth Companion
+# SkyFlow: An AI Native Earth Companion
 
-AI Native immersive real-time Earth companion interface.
+![SkyFlow preview](./docs/images/skyflow-preview.png)
+
+SkyFlow is an immersive real-time Earth companion.
+
+It is not a conventional weather app, and it is not a chatbot placed beside a globe. It is an ambient observation interface where clouds, moonlight, daylight, weather, and personal sky memories become something you can look at, ask about, and return to.
+
+SkyFlow is built around a simple feeling: the Earth should not be a background image. It should feel like the interface is alive enough to answer.
 
 中文版本: [README.zh-CN.md](./README.zh-CN.md)
 
-## Product Direction
+## Demo
 
-SkyFlow is not a traditional weather app or chatbot. It is an ambient Earth interface: a quiet orbital window that helps users feel connected to the real world, nature, light, weather, and time.
+- Live demo: add Vercel link here after deployment
+- Demo video: add video link here
+- Repository: current GitHub project
 
-The MVP should make the Earth feel alive within 10 seconds:
+## What You See
 
-- cinematic 3D Earth
-- slow rotation and smooth camera inertia
-- day/night lighting
-- atmosphere glow
-- cloud motion
-- user-local environmental context
-- low-frequency ambient narration
+SkyFlow opens with a cinematic 3D Earth. The globe shows a live day-night boundary, cloud texture, atmospheric glow, stars, and local sky context.
 
-## Current State
+You can drag the Earth, pause on a view, and let the camera return to a very slow orbit. The interface stays quiet: a few readouts, a line of ambient narration, and the sense that light and weather are still moving even when you are not touching anything.
 
-Implemented:
+## Three Ways To Use SkyFlow
 
-- React + Vite + TailwindCSS
-- React Three Fiber / Three.js globe scene
-- real local Earth day, night, and cloud texture assets from `public/textures`
-- procedural texture generator kept as a future fallback/reference path
-- animated clouds
-- cloud layer visibility toggle
-- atmospheric glow
-- presentation lighting with a visible day/night terminator
-- physically driven terminator based on current UTC time and approximate solar declination
-- star field
-- drag / zoom / rotate controls
-- browser geolocation fallback
-- Open-Meteo weather fetch
-- sunrise / sunset fetch fallback path
-- ambient companion narration
-- visible location coordinate strip
-- local fallback model when browser/API data is unavailable
-- unified `EarthTelemetry` data snapshot layer
-- visible telemetry source labels
-- local approximate sun and moon azimuth/altitude calculations
-- Soundscape Mode shell with local three-layer audio mixing
-- Observe mode with left/right local sky telemetry, sunrise/sunset and moon path curves
-- Earth Command text input that can answer fixed sky intents and drive globe camera actions
+### Companion: Watch The Earth Quietly
 
-## Code Structure
+Companion is the default mode.
 
-Current frontend structure:
+It is designed for presence rather than task completion. Every few seconds, SkyFlow rotates through short atmospheric lines about the moon, clouds, sunrise, sunset, city lights, and the feeling of being connected to the real world.
 
-```text
-src/
-  App.jsx                         # top-level experience shell and mode/state wiring
-  main.jsx                        # React entrypoint
-  styles.css                      # global visual system and HUD styling
-  components/
-    EarthCanvas.jsx               # React Three Fiber globe, lighting, camera, markers
-    EarthCommandInput.jsx         # text command input, future multimodal entry point
-    SoundscapeToggle.jsx          # minimal soundscape on/off control
-  hooks/
-    useSoundscape.js              # soundscape lifecycle and telemetry-driven volume updates
-  services/
-    audioService.js               # local looped audio layers and fade engine
-    earthCommandService.js        # fixed command intent parser and UI action mapping
-    earthDataService.js           # compatibility wrapper for UI environment snapshots
-    earthTelemetry.js             # location, weather, solar/lunar telemetry source layer
-    narration.js                  # ambient companion narration
-    skyDescriptionService.js      # sky direction and altitude language helpers
-  utils/
-    astro.js                      # local approximate solar/lunar math
-    format.js                     # display formatting helpers
-```
+In Companion, you can:
 
-Recommended backend structure for the next LLM phase:
+- Drag and orbit the Earth.
+- Stay on the angle you choose after dragging.
+- Watch local time, moon altitude, and the next light shift.
+- Toggle clouds, reference grid, and soundscape.
+- Reset the camera back to your location.
 
-```text
-server/
-  index.js                        # HTTP server entrypoint
-  routes/
-    asr.js                        # POST /api/asr/transcribe for microphone speech-to-text
-    earthChat.js                  # POST /api/earth/chat
-    memory.js                     # optional memory read/write endpoints
-  services/
-    asrService.js                 # DashScope Paraformer microphone ASR bridge
-    llmService.js                 # model provider adapter and streaming response handling
-    earthContextService.js        # converts EarthTelemetry + UI mode into model context
-    toolService.js                # maps model/tool intents to UI actions
-    memoryService.js              # long-term user memory abstraction
-  prompts/
-    earthCompanion.md             # system prompt for ambient Earth companion behavior
-    toolPolicy.md                 # rules for when the model may drive the globe UI
-  storage/
-    memoryStore.js                # initial local/file/db-backed memory implementation
-```
+### Ask: Talk To The Earth
 
-Frontend/backend boundary:
+Ask is the natural language entry point.
 
-- The browser should not hold provider API keys.
-- `EarthCommandInput` should call the backend for open-ended LLM turns.
-- Microphone input should call `/api/asr/transcribe` first, then send the transcript through `EarthCommandInput` as the user turn.
-- The backend response should return both natural language and optional UI actions.
-- UI actions should stay structured, for example `set_mode`, `focus_photo_marker`, `show_night_side`, or `show_sunlight`.
-- `EarthTelemetry` should be sent as compact context, not as raw UI state.
-- Long-term memory should begin as a small explicit profile/preferences store before adding embeddings or retrieval.
+You can type, upload an image, or use the microphone. SkyFlow answers with the current Earth context in mind, and when appropriate, it can move the interface instead of only replying with text.
 
-## Known Issues
+Examples:
 
-### Soundscape Local Audio Assets
+- `Where is the moon now?`
+- `show me the night side`
+- `what kind of cloud is this?`
+- `describe this sky photo`
 
-The Soundscape engine is implemented, but the actual loopable audio files are not committed yet.
+Image interpretation and ordinary answers stay inside Ask. SkyFlow should not switch views just because the user uploaded an image. It only moves into Observe when the question benefits from spatial sky data.
 
-Expected local files:
+### Observe: Understand The Current Sky
 
-- `public/audio/base-ambient.mp3`
-- `public/audio/night-piano.mp3`
-- `public/audio/wind-cloud.mp3`
+Observe is the local sky and telemetry view.
 
-Until those files are added, the UI and mixing logic remain available, but the browser will not produce sound for missing layers.
+It shows:
 
-### Earth Geography Texture Quality
+- Location and coordinates.
+- Sun path, sunrise, sunset, and solar direction.
+- Moon path, moonrise, moonset, meridian time, moon altitude, and moon phase.
+- Weather summary, cloud cover, and the next light shift.
+- Source labels for the data currently being used.
 
-Previous geography rendering used procedural landmass blocks, which made the globe look like large abstract continents without enough coastline or terrain detail.
+When Ask leads into Observe, SkyFlow highlights the relevant part of the interface. A moon question highlights moon path and altitude; a sun or sunset question highlights the sun path; a weather or cloud question highlights sky conditions.
 
-Current fix:
+## Sky Memories
 
-- The globe now loads real local texture assets:
-  - `public/textures/earth-day.jpg`
-  - `public/textures/earth-night.png`
-  - `public/textures/earth-clouds.png`
-- The cloud layer uses the cloud texture as an alpha map so the real surface remains visible.
+SkyFlow treats photos as memories that can belong to places on Earth.
 
-Remaining improvement areas:
+The current prototype includes sky memory markers such as Yueyang, College Park, Provideniya, and Los Angeles. The goal is not only to upload an image, but to place a moment of sky back onto the globe.
 
-- add separate roughness/bump/specular layers
-- tune texture color grading under day/night shader lighting
-- verify the asset license/provenance before production release
-- consider higher-resolution day/night assets if close zoom becomes important
-- eventually use NASA GIBS tiles for real cloud/surface data where appropriate
+The app currently keeps two kinds of records:
 
-## Data Plan
+- Conversation timeline: user input, attachments, response route, answer, and triggered UI actions.
+- Memory candidates: stable preferences or meaningful long-term facts, such as language preference, recurring sky interests, or important place-photo associations.
 
-### User Location
+SkyFlow does not save raw uploaded media as long-term memory.
 
-Use the browser native Geolocation API:
+## Tech Stack
 
-```js
-navigator.geolocation.getCurrentPosition()
-```
+Frontend:
 
-Required fields:
+- React
+- Vite
+- Tailwind CSS
+- Three.js
+- React Three Fiber
+- Drei
+- Lucide React
 
-- `latitude`
-- `longitude`
+Backend and AI:
 
-These coordinates drive local weather, light, moon, and narration.
+- Node.js
+- Vercel Serverless Functions
+- DashScope-compatible Qwen model
+- DashScope Paraformer ASR
+- Open-Meteo
 
-### Real-Time Weather / Cloud Cover
+Rendering:
 
-Use Open-Meteo first because it is free, keyless, and suitable for demos.
+- Local day, night, and cloud Earth textures
+- Shader-based day-night blending
+- Real-time subsolar direction approximation
+- Camera-based globe interaction with slow idle orbit
 
-Initial fields:
+## Data Sources
 
-- `temperature_2m`
-- `cloud_cover`
-- `weather_code`
-- `wind_speed_10m`
+SkyFlow combines live data, local calculations, and static visual assets.
 
-### Sun / Moon / Astronomy
+- Browser Geolocation provides the local observation point when available.
+- Open-Meteo provides weather, cloud cover, wind speed, sunrise, and sunset.
+- Local astronomy helpers estimate sun direction, sun altitude, moon direction, moon altitude, and moon phase.
+- Timeanddate moon data can be requested through the backend for richer moon timing.
+- DashScope Qwen powers open-ended Ask responses.
+- DashScope Paraformer powers microphone transcription.
 
-Use Open-Meteo for stable sunrise/sunset data through the forecast endpoint.
+If a provider is unavailable, SkyFlow falls back to local estimates instead of breaking the experience.
 
-Current implementation:
+## Privacy And API Keys
 
-- `daily=sunrise,sunset` from Open-Meteo
-- local approximate `sun_azimuth`
-- local approximate `sun_altitude`
-- local approximate `moon_azimuth`
-- local approximate `moon_altitude`
-- local moon phase calculation
-- optional Timeanddate moon telemetry through the local backend:
-  - `moonrise`
-  - `moonset`
-  - meridian passing time / altitude
-  - current Moon Direction
-  - current Moon Altitude
+Provider API keys are never stored in the browser.
 
-Target fields for a later dedicated astronomy provider:
+The frontend calls same-origin routes such as `/api/earth/chat` and `/api/asr/transcribe`. Those routes run on the server side and read secrets from environment variables.
 
-- `sunrise`
-- `sunset`
-- `moonrise`
-- `moonset`
-- `sun_azimuth`
-- `moon_azimuth`
-- `moon_altitude`
-
-Backup option:
-
-- ipgeolocation Astronomy API, if a key is acceptable later.
-
-Important note:
-
-Open-Meteo is the preferred MVP source for weather and sunrise/sunset because it is keyless and demo-friendly. Do not assume moonrise/moonset or sun/moon azimuth fields are available in the standard forecast endpoint unless verified before implementation.
-
-Timeanddate moon pages can provide richer local moon timing, but they may return an anti-bot challenge or HTTP 403. SkyFlow only requests them through the backend with an 8-hour cache and a 45-second minimum request interval. If Timeanddate blocks the request, the app keeps using local astronomy estimates instead of retrying aggressively.
-
-### Real Cloud Imagery
-
-Future phase: NASA GIBS.
-
-NASA GIBS can provide near-real-time satellite imagery through WMTS/WMS/TMS/XYZ tiles. Many layers are available roughly 3-5 hours after observation.
-
-Do not make NASA GIBS a hard dependency for the MVP. First use a semi-transparent animated cloud layer, then upgrade to real satellite cloud tiles when the base Earth experience is strong.
-
-## Progress Log
-
-### 2026-05-23
-
-- Added Soundscape Mode as a local audio-layer system with base ambient, night piano, and wind/cloud layers.
-- Added smooth fade in/out behavior for soundscape layers and telemetry-driven target volumes.
-- Soundscape volume now responds to cloud cover, wind speed, sun altitude, and moon altitude.
-- Added `public/audio/README.md` documenting the required local audio filenames.
-- Replaced the former local sky HUD with a quieter Observe layout that keeps telemetry on the left and right edges.
-- Added human-readable direction and altitude descriptions for local sky state.
-- Added ambient local sky narration such as moon direction, cloud cover, and local daylight context.
-- Added Earth Command input with the placeholder `Ask the Earth...`.
-- Added fixed command intents for moon, sun, sky, sunset, night side, and sunlight.
-- Added microphone input for Ask mode with DashScope Paraformer ASR transcription before routing into Earth Command.
-- Connected Earth Command actions to globe behavior so commands can switch modes or move the camera to night/sunlight views.
-- Added a subtle sunlight terminator emphasis for the sunlight command.
-- Verified `npm run build` passes; Vite still reports the expected large Three.js chunk warning.
-- Read through the app code and found that real Earth textures already existed in `public/textures`, but the globe was still using procedural canvas textures.
-- Switched the Three.js globe to load local real day, night, and cloud textures through `TextureLoader`.
-- Changed the cloud layer to use `earth-clouds.png` as an alpha map, keeping the real geography visible below it.
-- Updated README progress rules and added this Chinese counterpart document requirement.
-- Brightened the globe shader and scene lighting so continents and oceans remain readable.
-- Added a small UI control to toggle the cloud layer on/off.
-- Lowered default cloud opacity to reduce surface obstruction.
-- Changed the render lighting to a presentation sun direction so the globe visibly shows one day side, one night side, and a stronger day/night terminator.
-- Rechecked the app in the in-app browser and increased exposure again because the first pass still read too dark.
-- Reduced cloud opacity again after visual review so the cloud layer does not dominate the surface texture when enabled.
-- Reworked the terminator model from a fixed presentation light to a real-time subsolar point calculation.
-- Stopped auto-rotating the Earth mesh so the day/night boundary moves at real Earth time instead of animation speed.
-- Kept camera interaction for user-controlled observation while preserving the globe's physical coordinate frame.
-- Added a right-side local time block showing approximate local time, location, UTC offset, solar altitude, and solar azimuth.
-- Moved the local time/location block into the always-visible upper-right control stack so it appears even on narrower viewports.
-- Removed the time card border and changed it to a more transparent ambient fill.
-- Added a reset view button below the cloud toggle; it returns the camera to the current/fallback user location.
-- Applied Earth's axial tilt at 23.44 degrees to the globe coordinate frame and adjusted the shader sun vector into the same tilted frame.
-- Changed the time card to fully transparent text-only styling so it no longer blocks the globe.
-- Added subtle globe reference lines: true axis line, 30-degree meridians, equator, Tropic of Cancer, and Tropic of Capricorn.
-- Made the axis line longer and clearer than the atmosphere shell for a stronger sense of extension.
-- Increased reference line visibility while keeping the style atmospheric.
-- Added a grid toggle below reset view; it controls meridians, equator, and tropic lines while the axis line always remains visible.
-- Restored slow idle motion using camera orbit controls instead of rotating the physical Earth mesh.
-- Kept Earth's axis tilted 23.44 degrees relative to the ecliptic frame while preserving the real-time terminator calculation.
-
-### 2026-05-22
-
-- Confirmed that the current procedural geography is visually insufficient.
-- Added this README as the single place for project progress, known issues, and data/API decisions.
-- Agreed that future changes and progress notes should be recorded here.
-- Added `src/services/earthTelemetry.js` as the unified data layer for location, weather, solar, lunar, and source metadata.
-- Kept `src/services/earthDataService.js` as a compatibility wrapper for the current UI.
-- Switched weather and sunrise/sunset fetching to a single Open-Meteo forecast request.
-- Added local approximate solar and lunar position calculations while moonrise/moonset provider choice remains open.
-- Added visible telemetry source chips for Open-Meteo/live and local-model states.
-
-### 2026-05-21
-
-- Created the initial Vite + React + Three.js project.
-- Built the first immersive Earth companion scene.
-- Added geolocation, Open-Meteo weather, fallback data behavior, and ambient narration.
+Do not store secrets with a `VITE_` prefix. Vite exposes `VITE_*` variables to the client bundle.
 
 ## Local Development
 
+Install dependencies:
+
 ```bash
 npm install
+```
+
+Run the local API server:
+
+```bash
+npm run server
+```
+
+Run the Vite dev server:
+
+```bash
 npm run dev
 ```
 
-Open:
-
-```text
-http://localhost:5173/
-```
-
-Production build:
+Build:
 
 ```bash
 npm run build
 ```
 
-## Next Steps
+## Deployment
 
-- Harden the LLM backend and add clearer provider error diagnostics for `POST /api/earth/chat`.
-- Expand the memory model for stable user preferences, location assumptions, recurring sky interests, and photo context.
-- Tune the day/night audio choices in `public/audio/` against actual local time transitions.
-- Run visual QA in browser across desktop and mobile sizes for Observe, Earth Command, and photo memory markers.
-- Add command examples in the UI only if needed; keep the interface ambient and avoid turning it into a chatbot panel.
-- Add stronger intent feedback for `Where is the moon?`, including clearer right-side telemetry emphasis and optional moon marker relation.
-- Replace approximate moon altitude/azimuth with a more accurate astronomy calculation or provider when needed.
-- Consider code-splitting Three.js/R3F if production bundle size becomes important.
+SkyFlow is ready to deploy on Vercel.
+
+Required environment variables:
+
+```bash
+DASHSCOPE_API_KEY=your_dashscope_key
+QWEN_MODEL=qwen3.5-omni-plus
+DASHSCOPE_ASR_MODEL=paraformer-v2
+```
+
+Vercel settings:
+
+```text
+Build command: npm run build
+Output directory: dist
+```
+
+See [docs/vercel-deployment.md](./docs/vercel-deployment.md) for deployment details.
