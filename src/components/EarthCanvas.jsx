@@ -376,6 +376,7 @@ function CameraControls({ snapshot, resetViewSignal, mode, visualCommand, sunDir
   const targetCameraRef = useRef(null);
   const targetLookAtRef = useRef(new THREE.Vector3(0, 0, 0));
   const resumeAutoRotateTimerRef = useRef(null);
+  const handledVisualCommandRef = useRef(null);
 
   useEffect(() => {
     return () => {
@@ -408,6 +409,9 @@ function CameraControls({ snapshot, resetViewSignal, mode, visualCommand, sunDir
 
   useEffect(() => {
     if (!controlsRef.current || !visualCommand) return;
+    if (handledVisualCommandRef.current === visualCommand.createdAt) return;
+
+    handledVisualCommandRef.current = visualCommand.createdAt;
 
     if (visualCommand.type === "observe-guide") {
       const pose = getLocalObservationPose(snapshot, size.width);
@@ -428,7 +432,7 @@ function CameraControls({ snapshot, resetViewSignal, mode, visualCommand, sunDir
       targetLookAtRef.current = sunDirection.clone().multiplyScalar(0.15);
       pauseAutoRotate();
     }
-  }, [snapshot, size.width, sunDirection, visualCommand]);
+  }, [snapshot.latitude, snapshot.longitude, size.width, sunDirection, visualCommand]);
 
   useFrame(() => {
     if (!controlsRef.current || !targetCameraRef.current) return;
