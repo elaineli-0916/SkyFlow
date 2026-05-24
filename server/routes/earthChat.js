@@ -25,6 +25,10 @@ export async function handleEarthChat(request, response) {
 }
 
 async function readJsonBody(request) {
+  if (request.body) {
+    return typeof request.body === "string" ? JSON.parse(request.body) : request.body;
+  }
+
   let size = 0;
   const chunks = [];
 

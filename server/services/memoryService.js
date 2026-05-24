@@ -22,7 +22,7 @@ export async function saveMemoryCandidates(candidates = [], source = {}) {
   if (meaningful.length === 0) return;
 
   const memories = await readMemories();
-  await writeMemories([...memories, ...meaningful].slice(-200));
+  await writeMemories([...memories, ...meaningful].slice(-200)).catch(() => {});
 }
 
 async function readMemories() {
