@@ -218,9 +218,8 @@
 
       .demo-card {
         display: grid;
-        min-height: 190px;
-        place-items: center;
-        padding: clamp(1.5rem, 5vw, 3rem);
+        gap: 1rem;
+        padding: clamp(0.8rem, 2vw, 1rem);
         border: 1px solid var(--line);
         border-radius: 8px;
         background:
@@ -229,6 +228,30 @@
         box-shadow:
           inset 0 1px 0 rgba(255, 255, 255, 0.06),
           0 24px 70px rgba(0, 0, 0, 0.26);
+      }
+
+      .video-frame {
+        width: 100%;
+        aspect-ratio: 16 / 9;
+        overflow: hidden;
+        border: 1px solid rgba(188, 220, 255, 0.14);
+        border-radius: 6px;
+        background: #02040a;
+      }
+
+      .video-frame iframe {
+        display: block;
+        width: 100%;
+        height: 100%;
+        border: 0;
+      }
+
+      .demo-actions {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 0.8rem;
+        padding: 0.2rem 0 0.4rem;
       }
 
       .demo-card .button {
@@ -340,7 +363,23 @@
       <section class="demo" id="todo-demo-video" aria-labelledby="demo-title">
         <p class="section-label">3-Minute Demo</p>
         <div class="demo-card">
-          <a class="button" href="#todo-demo-video" id="demo-title">Watch Demo Video</a>
+          <div class="video-frame" id="demo-title">
+            <iframe
+              src="https://player.bilibili.com/player.html?isOutside=true&bvid=BV1rNGJ69EU8&p=1&autoplay=0"
+              title="SkyFlow 3-Minute Demo"
+              allowfullscreen
+            ></iframe>
+          </div>
+          <div class="demo-actions">
+            <a
+              class="button"
+              href="https://www.bilibili.com/video/BV1rNGJ69EU8/"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Open on Bilibili
+            </a>
+          </div>
         </div>
       </section>
 
