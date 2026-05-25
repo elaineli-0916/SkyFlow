@@ -12,9 +12,9 @@ SkyFlow is built around a simple feeling: the Earth should not be a background i
 
 ## Demo
 
-- Live demo: add Vercel link here after deployment
-- Demo video: add video link here
-- Repository: current GitHub project
+- Live demo: [sky-flow-eosin.vercel.app](https://sky-flow-eosin.vercel.app/)
+- Demo video: [Bilibili 3-minute demo](https://www.bilibili.com/video/BV1rNGJ69EU8/)
+- Repository: [elaineli-0916/SkyFlow](https://github.com/elaineli-0916/SkyFlow)
 
 ## What You See
 
@@ -76,9 +76,102 @@ The current prototype includes sky memory markers such as Yueyang, College Park,
 The app currently keeps two kinds of records:
 
 - Conversation timeline: user input, attachments, response route, answer, and triggered UI actions.
-- Memory candidates: stable preferences or meaningful long-term facts, such as language preference, recurring sky interests, or important place-photo associations.
+- Sky memories: when the user explicitly asks to save an uploaded sky photo, SkyFlow reads capture time and GPS metadata. If either is missing, Ask continues the conversation and asks for the missing detail before placing the memory on the globe.
 
-SkyFlow does not save raw uploaded media as long-term memory.
+The first version stores sky memories in the current browser with localStorage. It does not require an account or cloud sync.
+
+## Interaction Playbook
+
+Use these prompts to test the interaction rules. The goal is not just whether SkyFlow answers, but whether it drives the Earth interface in the right way.
+
+### 1. Ask leads into Observe
+
+Try:
+
+```text
+Where is the moon now?
+```
+
+Expected behavior:
+
+- Ask responds first with a short handoff line.
+- The Earth moves toward your local observation context.
+- Observe opens and highlights the moon path or moon altitude.
+
+Also try:
+
+```text
+When is sunset?
+```
+
+```text
+Show me the cloud cover above me.
+```
+
+### 2. Move the Earth without switching modes
+
+Try:
+
+```text
+show me the night side
+```
+
+Expected behavior:
+
+- SkyFlow stays in Ask.
+- The globe turns toward the night side.
+- The conversation timeline records a `show_night_side` action.
+
+Also try:
+
+```text
+show me the sunlight edge
+```
+
+SkyFlow should move the camera toward the daylight boundary instead of replying with a long explanation.
+
+### 3. Inspect an uploaded cloud photo
+
+Upload a cloud photo and ask:
+
+```text
+what kind of cloud is this?
+```
+
+Expected behavior:
+
+- SkyFlow stays in Ask.
+- It answers about the image content.
+- It does not jump to Observe.
+- If it hints at the cloud layer, that should be a light visual pulse, not a mode switch.
+
+This tests the distinction between a cloud in a photo and the live sky above the user.
+
+### 4. Save a sky photo as a memory
+
+Upload a sky photo and ask:
+
+```text
+save this sky memory
+```
+
+Expected behavior:
+
+- If the image has GPS and capture time, SkyFlow saves it immediately.
+- If GPS is missing, Ask asks where the photo was taken.
+- If capture time is missing, Ask asks for the time.
+- After saving, the Earth moves to the location and a new sky memory marker appears.
+- After refresh, the local marker is still there.
+
+### 5. Watch realtime Companion narration
+
+Return to Companion and wait for about 30 seconds.
+
+Expected behavior:
+
+- The line still changes every 10 seconds.
+- The text reflects current cloud cover, sun altitude, moon altitude, moon phase, and local time.
+- It does not use personal-interest memory yet; it stays grounded in realtime sky state.
 
 ## Tech Stack
 
@@ -99,6 +192,7 @@ Backend and AI:
 - DashScope-compatible Qwen model
 - DashScope Paraformer ASR
 - Open-Meteo
+- exifr
 
 Rendering:
 
@@ -117,6 +211,7 @@ SkyFlow combines live data, local calculations, and static visual assets.
 - Timeanddate moon data can be requested through the backend for richer moon timing.
 - DashScope Qwen powers open-ended Ask responses.
 - DashScope Paraformer powers microphone transcription.
+- exifr reads photo capture time and GPS metadata in the browser.
 
 If a provider is unavailable, SkyFlow falls back to local estimates instead of breaking the experience.
 
@@ -127,6 +222,8 @@ Provider API keys are never stored in the browser.
 The frontend calls same-origin routes such as `/api/earth/chat` and `/api/asr/transcribe`. Those routes run on the server side and read secrets from environment variables.
 
 Do not store secrets with a `VITE_` prefix. Vite exposes `VITE_*` variables to the client bundle.
+
+Uploaded images are interpreted for the current request. A thumbnail and sky memory metadata are saved locally only when the user explicitly asks SkyFlow to remember the photo.
 
 ## Local Development
 

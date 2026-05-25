@@ -171,9 +171,25 @@ function summarizeWeather(current) {
 }
 
 function normalizeOpenMeteoTime(value, utcOffsetSeconds = 0) {
-  const local = new Date(value);
-  if (Number.isNaN(local.getTime())) return null;
-  return new Date(local.getTime() - utcOffsetSeconds * 1000).toISOString();
+  if (/[zZ]|[+-]\d{2}:?\d{2}$/.test(value)) {
+    const absolute = new Date(value);
+    return Number.isNaN(absolute.getTime()) ? null : absolute.toISOString();
+  }
+
+  const match = String(value).match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?/);
+  if (!match) return null;
+
+  const [, year, month, day, hour, minute, second = "0"] = match;
+  const localWallTimeAsUtc = Date.UTC(
+    Number(year),
+    Number(month) - 1,
+    Number(day),
+    Number(hour),
+    Number(minute),
+    Number(second)
+  );
+
+  return new Date(localWallTimeAsUtc - utcOffsetSeconds * 1000).toISOString();
 }
 
 async function getTimeAndDateMoonSnapshot(location) {

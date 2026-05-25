@@ -1,5 +1,6 @@
 import { Image, Mic, Send, Square, X } from "lucide-react";
 import { useRef, useState } from "react";
+import { buildImageAttachment } from "../services/photoMetadataService.js";
 
 function EarthCommandInput({ onSubmit, busy }) {
   const [value, setValue] = useState("");
@@ -20,10 +21,8 @@ function EarthCommandInput({ onSubmit, busy }) {
   async function handleFiles(files, kind) {
     const nextAttachments = await Promise.all(
       Array.from(files).map(async (file) => ({
-        kind,
-        name: file.name,
-        mimeType: file.type,
-        dataUrl: await readAsDataUrl(file)
+        ...(await buildImageAttachment(file, kind)),
+        id: `attachment-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
       }))
     );
 
@@ -255,15 +254,6 @@ function bytesToBase64(bytes) {
   }
 
   return btoa(binary);
-}
-
-function readAsDataUrl(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.addEventListener("load", () => resolve(reader.result));
-    reader.addEventListener("error", reject);
-    reader.readAsDataURL(file);
-  });
 }
 
 export default EarthCommandInput;

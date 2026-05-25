@@ -34,7 +34,7 @@ function EarthCanvas({ snapshot, now, showClouds, showGrid, resetViewSignal, mod
             photoMarkers={photoMarkers}
             onPhotoPreviewChange={onPhotoPreviewChange}
           />
-          <MoonMarker snapshot={snapshot} now={now} />
+          <MoonMarker snapshot={snapshot} now={now} visualCommand={visualCommand} />
           <CameraControls
             snapshot={snapshot}
             resetViewSignal={resetViewSignal}
@@ -199,6 +199,8 @@ function EarthGroup({ snapshot, showClouds, showGrid, sunDirection, visualComman
     if (cloudRef.current) {
       cloudRef.current.rotation.y = elapsed * 0.012;
       cloudRef.current.rotation.z = Math.sin(elapsed * 0.06) * 0.015;
+      const cloudPulse = visualCommand?.type === "pulse-layer" && visualCommand.layer === "clouds" ? getCommandPulse(visualCommand.createdAt) : 0;
+      cloudRef.current.material.opacity = 0.12 + cloudPulse * 0.16;
     }
     glowRef.current.material.uniforms.pulse.value = 0.5 + Math.sin(elapsed * 0.52) * 0.5;
     atmosphereRef.current.rotation.z = elapsed * 0.009;
@@ -432,6 +434,15 @@ function CameraControls({ snapshot, resetViewSignal, mode, visualCommand, sunDir
       targetLookAtRef.current = sunDirection.clone().multiplyScalar(0.15);
       pauseAutoRotate();
     }
+
+    if (visualCommand.type === "camera-travel" && Number.isFinite(visualCommand.latitude) && Number.isFinite(visualCommand.longitude)) {
+      const surfaceDirection = latLonToVector3(visualCommand.latitude, visualCommand.longitude, 1)
+        .applyAxisAngle(new THREE.Vector3(0, 0, 1), EARTH_AXIAL_TILT)
+        .normalize();
+      targetCameraRef.current = surfaceDirection.clone().multiplyScalar(size.width < 760 ? 5.6 : 3.9);
+      targetLookAtRef.current = surfaceDirection.clone().multiplyScalar(0.12);
+      pauseAutoRotate();
+    }
   }, [snapshot.latitude, snapshot.longitude, size.width, sunDirection, visualCommand]);
 
   useFrame(() => {
@@ -584,7 +595,7 @@ function AxisLine() {
   );
 }
 
-function MoonMarker({ snapshot, now }) {
+function MoonMarker({ snapshot, now, visualCommand }) {
   const moonRef = useRef();
   const phase = ((now.getDate() % 29.53) / 29.53) * Math.PI * 2;
   const orbitRadius = 3.35;
@@ -596,9 +607,10 @@ function MoonMarker({ snapshot, now }) {
     if (!moonRef.current) return;
     const elapsed = clock.getElapsedTime();
     if (moonTarget) {
+      const moonPulse = visualCommand?.type === "pulse-layer" && visualCommand.layer === "moon" ? getCommandPulse(visualCommand.createdAt) : 0;
       moonRef.current.position.lerp(moonTarget.position, 0.045);
-      moonRef.current.material.opacity = THREE.MathUtils.lerp(moonRef.current.material.opacity, moonTarget.opacity, 0.06);
-      moonRef.current.scale.setScalar(THREE.MathUtils.lerp(moonRef.current.scale.x, moonTarget.scale, 0.05));
+      moonRef.current.material.opacity = THREE.MathUtils.lerp(moonRef.current.material.opacity, Math.min(1, moonTarget.opacity + moonPulse * 0.26), 0.06);
+      moonRef.current.scale.setScalar(THREE.MathUtils.lerp(moonRef.current.scale.x, moonTarget.scale + moonPulse * 0.24, 0.05));
     } else {
       moonRef.current.position.x = Math.cos(phase + elapsed * 0.006) * orbitRadius;
       moonRef.current.position.y = 1.2 + Math.sin(phase * 0.7) * 0.55;
@@ -615,6 +627,13 @@ function MoonMarker({ snapshot, now }) {
       <meshStandardMaterial color="#d8d6cb" roughness={0.88} emissive="#8f8a7f" emissiveIntensity={0.16} transparent opacity={0.9} />
     </mesh>
   );
+}
+
+function getCommandPulse(createdAt) {
+  if (!createdAt) return 0;
+  const age = (Date.now() - createdAt) / 1000;
+  if (age < 0 || age > 2.4) return 0;
+  return Math.sin(age * Math.PI * 2.1) * (1 - age / 2.4) * 0.5 + 0.5 * (1 - age / 2.4);
 }
 
 function getLocalMoonTarget(snapshot, radius) {

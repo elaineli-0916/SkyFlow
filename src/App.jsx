@@ -6,7 +6,8 @@ import EarthConversationLog from "./components/EarthConversationLog.jsx";
 import SoundscapeToggle from "./components/SoundscapeToggle.jsx";
 import { getEnvironmentSnapshot } from "./services/earthDataService.js";
 import { resolveEarthCommand } from "./services/earthCommandService.js";
-import { PHOTO_MEMORY_MARKERS } from "./services/photoMemoryService.js";
+import { geocodePlace, reverseGeocode } from "./services/geocodingService.js";
+import { addSkyMemory, buildPhotoMemoryMarkers, createSkyMemory, loadSkyMemories } from "./services/skyMemoryService.js";
 import { buildNarration } from "./services/narration.js";
 import { useSoundscape } from "./hooks/useSoundscape.js";
 import { formatDegrees, formatLocalClock, formatMinutes, formatPreciseCoordinate, formatUtcOffset } from "./utils/format.js";
@@ -43,7 +44,12 @@ function App() {
   const [mode, setMode] = useState("companion");
   const [observeGuide, setObserveGuide] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(null);
+  const [userSkyMemories, setUserSkyMemories] = useState(() => loadSkyMemories());
+  const [pendingSkyMemory, setPendingSkyMemory] = useState(null);
+  const [suggestedObserve, setSuggestedObserve] = useState(null);
+  const [manualHighlightFocus, setManualHighlightFocus] = useState(null);
   const observeGuideTimers = useRef([]);
+  const manualHighlightTimer = useRef(null);
   const soundscape = useSoundscape(snapshot, now);
 
   useEffect(() => {
@@ -87,7 +93,15 @@ function App() {
     }
   }, [mode]);
 
-  useEffect(() => () => clearObserveGuideTimers(), []);
+  useEffect(() => () => {
+    clearObserveGuideTimers();
+    clearManualHighlight();
+  }, []);
+
+  const photoMemoryMarkers = useMemo(
+    () => buildPhotoMemoryMarkers(userSkyMemories),
+    [userSkyMemories]
+  );
 
   const narration = useMemo(
     () => buildNarration(snapshot, now, narrationIndex),
@@ -162,7 +176,7 @@ function App() {
         resetViewSignal={resetViewSignal}
         mode={mode}
         visualCommand={visualCommand}
-        photoMarkers={mode === "ask" ? PHOTO_MEMORY_MARKERS : []}
+        photoMarkers={mode === "ask" ? photoMemoryMarkers : []}
         onPhotoPreviewChange={setPhotoPreview}
       />
 
@@ -234,11 +248,17 @@ function App() {
         {mode === "ask" && (
         <div className="pointer-events-auto ask-console">
           <EarthConversationLog turns={conversationTurns} />
+          {suggestedObserve && (
+            <button className="observe-suggestion" type="button" onClick={() => acceptObserveSuggestion(suggestedObserve.focus)}>
+              <Telescope size={13} />
+              <span>{suggestedObserve.label}</span>
+            </button>
+          )}
           <EarthCommandInput onSubmit={handleEarthCommand} busy={commandBusy} />
         </div>
         )}
         {mode === "observe" && (
-          <ObserveTelemetryLayout snapshot={snapshot} nextSunEvent={nextSunEvent} highlightFocus={observeGuide?.phase === "highlight" ? observeGuide.focus : null} />
+          <ObserveTelemetryLayout snapshot={snapshot} nextSunEvent={nextSunEvent} highlightFocus={observeGuide?.phase === "highlight" ? observeGuide.focus : manualHighlightFocus} />
         )}
       </section>
 
@@ -250,11 +270,13 @@ function App() {
   async function handleEarthCommand(commandInput) {
     const text = typeof commandInput === "string" ? commandInput : commandInput.text;
     const attachments = typeof commandInput === "string" ? [] : commandInput.attachments ?? [];
+    let readySkyMemoryDraft = null;
 
     if (!text && attachments.length === 0) return;
 
     clearObserveGuideTimers();
     setObserveGuide(null);
+    setSuggestedObserve(null);
     setCommandBusy(true);
     setCommandResponse("Thinking with the Earth...");
     const turnId = `turn-${Date.now()}`;
@@ -276,6 +298,40 @@ function App() {
     ].slice(-8));
 
     try {
+      if (pendingSkyMemory) {
+        await continueSkyMemoryDraft(text, turnId);
+        return;
+      }
+
+      if (isSkyMemorySaveIntent(text)) {
+        if (attachments.length === 0) {
+          const assistantText = "Attach the sky photo you want me to remember, then tell me to save it.";
+          setCommandResponse(assistantText);
+          updateConversationTurn(turnId, {
+            routeLabel: "local memory",
+            status: "answered",
+            assistantText,
+            actions: []
+          });
+          return;
+        }
+
+        const draft = await prepareSkyMemoryDraft(attachments[0]);
+        if (draft.needs) {
+          setPendingSkyMemory(draft);
+          const assistantText = getSkyMemoryQuestion(draft.needs);
+          setCommandResponse(assistantText);
+          updateConversationTurn(turnId, {
+            routeLabel: "local memory",
+            status: "answered",
+            assistantText,
+            actions: [{ type: "save_sky_memory", status: `needs_${draft.needs}` }]
+          });
+          return;
+        }
+        readySkyMemoryDraft = draft;
+      }
+
       const response = await fetch("/api/earth/chat", {
         method: "POST",
         headers: {
@@ -293,7 +349,7 @@ function App() {
           sunrise: snapshot.sunrise,
           sunset: snapshot.sunset,
           moonPhase: snapshot.moonPhase,
-          photoMemories: PHOTO_MEMORY_MARKERS
+          photoMemories: photoMemoryMarkers
         })
       });
 
@@ -308,6 +364,13 @@ function App() {
         : result.text ?? "I am listening from orbit.";
       setCommandResponse(assistantText);
       const executedActions = applyEarthActions(result.actions ?? [], { userText: text, attachments, assistantText });
+      if (readySkyMemoryDraft && shouldSaveSkyMemory(result.actions, text)) {
+        const memoryAction = saveSkyMemoryFromDraft(readySkyMemoryDraft, {
+          description: result.text,
+          tags: inferSkyMemoryTags(result.text)
+        });
+        executedActions.push(memoryAction);
+      }
       updateConversationTurn(turnId, {
         routeLabel: "qwen api",
         status: "answered",
@@ -316,7 +379,20 @@ function App() {
       });
     } catch {
       const result = resolveEarthCommand(text ?? "", snapshot, conversationTurns, attachments);
-      if (result) {
+      if (readySkyMemoryDraft) {
+        const memoryAction = saveSkyMemoryFromDraft(readySkyMemoryDraft, {
+          description: "A saved sky memory.",
+          tags: inferSkyMemoryTags(text)
+        });
+        const assistantText = `I saved this sky memory over ${readySkyMemoryDraft.location.name}.`;
+        setCommandResponse(assistantText);
+        updateConversationTurn(turnId, {
+          routeLabel: "local memory",
+          status: "answered",
+          assistantText,
+          actions: [memoryAction]
+        });
+      } else if (result) {
         setCommandResponse(result.response);
         const executedActions = applyLocalCommand(result);
         updateConversationTurn(turnId, {
@@ -361,6 +437,7 @@ function App() {
     }
 
     if (result.action === "focus-photo") {
+      focusPhotoMarker(result.photoId);
       executedActions.push({ type: "focus_photo_marker", id: result.photoId });
     }
 
@@ -381,6 +458,37 @@ function App() {
         executedActions.push(action);
       }
 
+      if (action.type === "camera_travel") {
+        executeCameraTravel(action);
+        executedActions.push(action);
+      }
+
+      if (action.type === "highlight") {
+        triggerHighlight(action.target, action.durationMs);
+        executedActions.push(action);
+      }
+
+      if (action.type === "pulse_layer") {
+        const layer = normalizeLayer(action.layer);
+        setVisualCommand(layer === "sunlight"
+          ? { type: "sunlight", createdAt: Date.now() }
+          : { type: "pulse-layer", layer, createdAt: Date.now() });
+        executedActions.push(action);
+      }
+
+      if (action.type === "suggest_observe") {
+        const focus = normalizeObserveFocus(action.focus);
+        if (!focus || shouldStayInAsk(context.userText, context.attachments)) continue;
+        setSuggestedObserve({ focus, label: action.label || getObserveSuggestionLabel(focus) });
+        executedActions.push({ ...action, focus });
+      }
+
+      if (action.type === "focus_photo_marker") {
+        if (focusPhotoMarker(action.id)) {
+          executedActions.push(action);
+        }
+      }
+
       if (action.type === "set_mode" && ["companion", "ask", "observe"].includes(action.mode)) {
         if (action.mode === "observe") {
           const focus = getAllowedObserveFocus([action], context.userText, context.attachments);
@@ -395,6 +503,251 @@ function App() {
     }
 
     return executedActions;
+  }
+
+  async function continueSkyMemoryDraft(text, turnId) {
+    const trimmed = String(text ?? "").trim();
+    if (!trimmed) {
+      const assistantText = getSkyMemoryQuestion(pendingSkyMemory.needs);
+      setCommandResponse(assistantText);
+      updateConversationTurn(turnId, {
+        routeLabel: "local memory",
+        status: "answered",
+        assistantText,
+        actions: []
+      });
+      return;
+    }
+
+    try {
+      const nextDraft = { ...pendingSkyMemory };
+      if (pendingSkyMemory.needs === "location") {
+        nextDraft.location = await geocodePlace(trimmed);
+      }
+
+      if (pendingSkyMemory.needs === "location_label") {
+        nextDraft.location = {
+          ...nextDraft.location,
+          name: trimmed,
+          region: nextDraft.location?.region === "EXIF GPS" ? "User confirmed" : nextDraft.location?.region,
+          source: "user-confirmed"
+        };
+      }
+
+      if (pendingSkyMemory.needs === "time") {
+        const parsedTime = parseUserDateTime(trimmed);
+        if (!parsedTime) {
+          const assistantText = "I need a clearer capture time, for example 2024-04-23 20:24.";
+          setCommandResponse(assistantText);
+          updateConversationTurn(turnId, {
+            routeLabel: "local memory",
+            status: "answered",
+            assistantText,
+            actions: [{ type: "save_sky_memory", status: "needs_time" }]
+          });
+          return;
+        }
+        nextDraft.capturedAt = parsedTime;
+      }
+
+      if (pendingSkyMemory.needs === "note") {
+        nextDraft.location = {
+          ...nextDraft.location,
+          note: normalizeSkyMemoryNote(trimmed)
+        };
+        nextDraft.noteConfirmed = true;
+      }
+
+      if (!nextDraft.location) {
+        nextDraft.needs = "location";
+        setPendingSkyMemory(nextDraft);
+        const assistantText = getSkyMemoryQuestion("location");
+        setCommandResponse(assistantText);
+        updateConversationTurn(turnId, {
+          routeLabel: "local memory",
+          status: "answered",
+          assistantText,
+          actions: [{ type: "save_sky_memory", status: "needs_location" }]
+        });
+        return;
+      }
+
+      if (!nextDraft.location.name || shouldConfirmPhotoLocationName(nextDraft.location)) {
+        nextDraft.needs = "location_label";
+        setPendingSkyMemory(nextDraft);
+        const assistantText = getSkyMemoryQuestion("location_label", nextDraft);
+        setCommandResponse(assistantText);
+        updateConversationTurn(turnId, {
+          routeLabel: "local memory",
+          status: "answered",
+          assistantText,
+          actions: [{ type: "save_sky_memory", status: "needs_location_label" }]
+        });
+        return;
+      }
+
+      if (!nextDraft.capturedAt) {
+        nextDraft.needs = "time";
+        setPendingSkyMemory(nextDraft);
+        const assistantText = getSkyMemoryQuestion("time");
+        setCommandResponse(assistantText);
+        updateConversationTurn(turnId, {
+          routeLabel: "local memory",
+          status: "answered",
+          assistantText,
+          actions: [{ type: "save_sky_memory", status: "needs_time" }]
+        });
+        return;
+      }
+
+      if (!nextDraft.noteConfirmed) {
+        nextDraft.needs = "note";
+        setPendingSkyMemory(nextDraft);
+        const assistantText = getSkyMemoryQuestion("note", nextDraft);
+        setCommandResponse(assistantText);
+        updateConversationTurn(turnId, {
+          routeLabel: "local memory",
+          status: "answered",
+          assistantText,
+          actions: [{ type: "save_sky_memory", status: "needs_note" }]
+        });
+        return;
+      }
+
+      setPendingSkyMemory(null);
+      const memoryAction = saveSkyMemoryFromDraft(nextDraft, {
+        description: "A saved sky memory.",
+        tags: inferSkyMemoryTags(trimmed)
+      });
+      const assistantText = `Saved. I placed this sky memory over ${nextDraft.location.name}.`;
+      setCommandResponse(assistantText);
+      updateConversationTurn(turnId, {
+        routeLabel: "local memory",
+        status: "answered",
+        assistantText,
+        actions: [memoryAction]
+      });
+    } catch {
+      const assistantText = "I could not resolve that place. Try a city name, like Yueyang or College Park.";
+      setCommandResponse(assistantText);
+      updateConversationTurn(turnId, {
+        routeLabel: "local memory",
+        status: "answered",
+        assistantText,
+        actions: [{ type: "save_sky_memory", status: "needs_location" }]
+      });
+    }
+  }
+
+  async function prepareSkyMemoryDraft(attachment) {
+    const draft = {
+      attachment,
+      location: null,
+      capturedAt: attachment.captureTime ?? null,
+      needs: null
+    };
+
+    if (Number.isFinite(attachment.gpsLatitude) && Number.isFinite(attachment.gpsLongitude)) {
+      draft.location = await reverseGeocode(attachment.gpsLatitude, attachment.gpsLongitude)
+        .then((location) => ({ ...location, source: "photo-gps" }))
+        .catch(() => ({
+          name: "Photo location",
+          region: "EXIF GPS",
+          latitude: attachment.gpsLatitude,
+          longitude: attachment.gpsLongitude,
+          source: "photo-gps"
+        }));
+    }
+
+    if (!draft.location) {
+      return { ...draft, needs: "location" };
+    }
+
+    if (shouldConfirmPhotoLocationName(draft.location)) {
+      return { ...draft, needs: "location_label" };
+    }
+
+    if (!draft.capturedAt) {
+      return { ...draft, needs: "time" };
+    }
+
+    return { ...draft, needs: "note" };
+  }
+
+  function saveSkyMemoryFromDraft(draft, options = {}) {
+    const memory = createSkyMemory({
+      attachment: draft.attachment,
+      location: draft.location,
+      capturedAt: draft.capturedAt,
+      description: options.description,
+      tags: options.tags
+    });
+    const nextMemories = addSkyMemory(memory);
+    setUserSkyMemories(nextMemories);
+    setPhotoPreview(null);
+    setVisualCommand({
+      type: "camera-travel",
+      latitude: memory.latitude,
+      longitude: memory.longitude,
+      createdAt: Date.now()
+    });
+    return { type: "save_sky_memory", id: memory.id, label: memory.label };
+  }
+
+  function executeCameraTravel(action) {
+    if (action.target === "local_position") {
+      setVisualCommand({ type: "camera-travel", latitude: snapshot.latitude, longitude: snapshot.longitude, createdAt: Date.now() });
+      return;
+    }
+
+    if (action.target === "photo_marker" && action.id) {
+      focusPhotoMarker(action.id);
+      return;
+    }
+
+    if (action.target === "night_side") {
+      setVisualCommand({ type: "night-side", createdAt: Date.now() });
+      return;
+    }
+
+    if (action.target === "sunlight_edge") {
+      setVisualCommand({ type: "sunlight", createdAt: Date.now() });
+    }
+  }
+
+  function focusPhotoMarker(markerId) {
+    const marker = photoMemoryMarkers.find((item) => item.id === markerId) ?? photoMemoryMarkers[0];
+    if (!marker) return false;
+    setVisualCommand({
+      type: "camera-travel",
+      latitude: marker.latitude,
+      longitude: marker.longitude,
+      createdAt: Date.now()
+    });
+    return true;
+  }
+
+  function triggerHighlight(target, durationMs = 1800) {
+    const focus = normalizeObserveFocus(target);
+    if (!focus) return;
+    clearManualHighlight();
+    setManualHighlightFocus(focus);
+    manualHighlightTimer.current = window.setTimeout(() => {
+      setManualHighlightFocus(null);
+      manualHighlightTimer.current = null;
+    }, clamp(Number(durationMs) || 1800, 900, 3200));
+  }
+
+  function acceptObserveSuggestion(focus) {
+    setSuggestedObserve(null);
+    beginObserveGuide(focus);
+  }
+
+  function clearManualHighlight() {
+    if (manualHighlightTimer.current) {
+      window.clearTimeout(manualHighlightTimer.current);
+      manualHighlightTimer.current = null;
+    }
   }
 
   function beginObserveGuide(focus) {
@@ -494,6 +847,84 @@ function getObserveHandoffLine(focus) {
   return "I will bring up the local telemetry without breaking the thread.";
 }
 
+function isSkyMemorySaveIntent(value) {
+  return /(记下来|保存|存起来|放回地球|天空记忆|save this|save it|remember this|sky memory|place this sky)/i.test(String(value ?? ""));
+}
+
+function shouldSaveSkyMemory(actions = [], userText) {
+  return isSkyMemorySaveIntent(userText) || actions.some((action) => action?.type === "save_sky_memory");
+}
+
+function getSkyMemoryQuestion(field, draft) {
+  if (field === "location") return "I can save this sky, but the photo has no GPS. Where was it taken?";
+  if (field === "location_label") {
+    const inferred = draft?.location?.name && draft.location.name !== "Photo location" ? ` I found ${draft.location.name};` : "";
+    return `${inferred} what place name should I show on the globe for this photo?`;
+  }
+  if (field === "time") return "I found the place. What time was this sky photographed? Use a format like 2024-04-23 20:24.";
+  if (field === "note") return "Add one short note for this sky memory, or type skip.";
+  return "Tell me the missing detail and I will place this sky memory on the Earth.";
+}
+
+function shouldConfirmPhotoLocationName(location) {
+  return location?.source === "photo-gps" || location?.name === "Photo location";
+}
+
+function normalizeSkyMemoryNote(value) {
+  const note = String(value ?? "").trim();
+  if (/^(skip|no|none|不用|跳过|不写)$/i.test(note)) return "";
+  return note.slice(0, 96);
+}
+
+function parseUserDateTime(value) {
+  const trimmed = String(value ?? "").trim();
+  if (!trimmed) return null;
+  const normalized = trimmed.replace(/年|\/|\./g, "-").replace(/月/g, "-").replace(/日/g, " ");
+  const date = new Date(normalized);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toISOString();
+}
+
+function inferSkyMemoryTags(value) {
+  const text = String(value ?? "").toLowerCase();
+  const tags = [];
+  if (/cloud|云/.test(text)) tags.push("cloud");
+  if (/moon|月/.test(text)) tags.push("moon");
+  if (/sunset|日落|黄昏/.test(text)) tags.push("sunset");
+  if (/sunrise|日出|清晨/.test(text)) tags.push("sunrise");
+  if (/night|夜/.test(text)) tags.push("night");
+  return tags;
+}
+
+function normalizeObserveFocus(value) {
+  const text = String(value ?? "").toLowerCase().replace(/_/g, "-");
+  if (["moon", "moon-path", "moon-altitude", "lunar"].includes(text)) return "moon";
+  if (["sun", "sun-path", "sunlight", "solar"].includes(text)) return "sun";
+  if (["weather", "cloud", "clouds", "cloud-density", "sky"].includes(text)) return "weather";
+  if (["telemetry", "observe", "data"].includes(text)) return "telemetry";
+  return null;
+}
+
+function normalizeLayer(value) {
+  const text = String(value ?? "").toLowerCase();
+  if (/moon|lunar/.test(text)) return "moon";
+  if (/cloud|weather|sky/.test(text)) return "clouds";
+  if (/sun|light|solar/.test(text)) return "sunlight";
+  if (/photo|memory/.test(text)) return "photo";
+  return "earth";
+}
+
+function getObserveSuggestionLabel(focus) {
+  if (focus === "moon") return "Show moon path";
+  if (focus === "sun") return "Show sunlight";
+  if (focus === "weather") return "Show sky layer";
+  return "Open Observe";
+}
+
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value));
+}
+
 function DataSourceFootnote({ snapshot }) {
   const sources = buildDataSourceItems(snapshot);
 
@@ -564,6 +995,7 @@ function PhotoMemoryPreviewOverlay({ preview }) {
         <strong>{marker.label}</strong>
         <span>{marker.region}</span>
         <small>{marker.capturedAt}</small>
+        {marker.note && <em>{marker.note}</em>}
       </div>
     </aside>
   );

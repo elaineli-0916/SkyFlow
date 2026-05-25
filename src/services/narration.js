@@ -1,66 +1,64 @@
 export function buildNarration(snapshot, now, index) {
-  return companionNarrationLines[index % companionNarrationLines.length];
+  const lines = buildRealtimeNarrationLines(snapshot, now);
+  return lines[index % lines.length];
 }
 
-const companionNarrationLines = [
-  "月亮还在地平线下方，像一句尚未说出口的话，正沿着夜色缓慢靠近。",
-  "它还没有升起，但夜色已经为它留出了位置。",
-  "月亮暂时藏在地球的背面，像一封正在抵达的信。",
-  "此刻你还看不见月亮，但它正在轨道上安静地接近你。",
-  "夜晚并不是空的，只是有些光还在路上。",
-  "月亮已经越过地平线，它没有照亮一切，只是轻轻确认：夜晚仍有方向。",
-  "月亮停在天空的一侧，像远处一盏不急着熄灭的灯。",
-  "它离你很远，却把夜晚照得有了形状。",
-  "月光没有声音，却让地球的这一面变得柔软。",
-  "今晚的月亮不需要被追赶，它只是缓慢地陪你经过夜色。",
-  "同一轮月亮经过不同的城市，把相隔很远的人放在同一个夜晚里。",
-  "月光越过经纬线，提醒人们：远方并不总是完全遥远。",
-  "此刻有人在另一片海岸看见同一束月光。",
-  "地球很大，但月亮让许多遥远的地方共享同一个方向。",
-  "有些距离无法缩短，但可以被同一片天空轻轻连接。",
-  "月亮离海很远，却仍然改变着海的方向。",
-  "有些陪伴并不靠近，只是在远处稳定地牵引。",
-  "月亮没有触碰海面，却让潮汐记得它的存在。",
-  "最安静的力量，常常来自最远的地方。",
-  "它不说话，只用引力把夜晚轻轻拉动。",
-  "月亮正在改变形状，它从不承诺停留，却每晚如约返回。",
-  "月相在缓慢变化，像天空保存的一种温柔不确定性。",
-  "它不是每天都完整，但每天都在场。",
-  "月亮的缺口不是消失，而是另一种正在发生的变化。",
-  "天空从不要求月亮永远圆满。",
-  "云并不急着抵达哪里，它们只是沿着风的方向，把天空缓慢改写。",
-  "云层正在聚拢，天空把光收得很轻，像是不愿打扰此刻的安静。",
-  "一片云经过地球的表面，像时间留下的浅浅痕迹。",
-  "云的移动很慢，但它们确实在改变此刻的天空。",
-  "天空不是静止的，只是它变化得比人类的心跳更缓。",
-  "今晚的天空比想象中更开阔，月光、风和远处的城市，都各自保持着距离。",
-  "云层散开之后，夜空不是变亮了，而是变得更深。",
-  "天空慢慢安静下来，像一片不急于回答的海。",
-  "此刻的天空留出了一些空白，让光可以慢慢抵达。",
-  "晴朗并不意味着热闹，它有时只是更深的安静。",
-  "光正在从地球的一侧慢慢回来，新的一天不是突然开始的，而是被一点点照亮。",
-  "太阳还没有完全升起，但地球已经开始变亮。",
-  "清晨不是被打开的，而是从地平线慢慢渗出来的。",
-  "第一束光抵达之前，天空已经在准备醒来。",
-  "有些开始很轻，像日出前慢慢变浅的蓝色。",
-  "太阳正在离开地平线，把最后一点光留给云层，也留给今天的结束。",
-  "白昼正在收拢，光从地球的一侧缓慢退去。",
-  "日落不是消失，而是光换了一个方向继续旅行。",
-  "天空把一天的颜色慢慢放低，直到夜晚可以接住它。",
-  "太阳落下去的时候，地球并没有暗下来，只是把光交给了另一边。",
-  "地球的夜晚并不完全黑暗，城市像细小的星群，在陆地上保持醒着。",
-  "夜色覆盖大陆，但人类的灯光仍在地表轻轻闪烁。",
-  "从轨道上看，城市像地球在夜里留下的呼吸。",
-  "黑暗并没有让世界停止，只是让灯光变得更清楚。",
-  "有人已经睡去，也有人仍在城市的光里赶路。",
-  "地球一直在转动。有人进入夜晚，有人迎来清晨，而你正在它安静的一侧，看见这一切。",
-  "此刻，白昼和夜晚正在地球表面缓慢交换边界。",
-  "世界没有暂停，只是以一种更大的节律继续流动。",
-  "你所在的地方只是地球上的一个小点，但此刻的光、云和月亮，都正经过这里。",
-  "地球没有说话，却一直用云、光和潮汐回应时间。",
-  "世界太近了，屏幕太亮了，所以天空需要更轻地提醒我们。",
-  "风、海和月亮一直在那里，只是我们很少停下来重新听见它们。",
-  "自然并没有远离，只是它从不争抢我们的注意力。",
-  "天空不会催促任何人，它只是恒常地展开在上方。",
-  "有时候，抬头不是为了寻找答案，而是为了重新感到自己还在世界之中。"
-];
+function buildRealtimeNarrationLines(snapshot, now) {
+  const solar = snapshot.telemetry?.solar ?? {};
+  const lunar = snapshot.telemetry?.lunar ?? {};
+  const weather = snapshot.weather ?? {};
+  const localHour = getLocalHour(now, snapshot.longitude, snapshot.locationTimezone);
+  const cloudCover = Number.isFinite(weather.cloudCover) ? Math.round(weather.cloudCover) : null;
+  const moonAltitude = Number.isFinite(lunar.altitude) ? Math.round(lunar.altitude) : null;
+  const sunAltitude = Number.isFinite(solar.altitude) ? Math.round(solar.altitude) : null;
+  const phase = Math.round((snapshot.moonPhase ?? 0) * 100);
+  const timeTone = getTimeTone(localHour, sunAltitude);
+  const lines = [
+    `此刻 ${snapshot.locationName} 正在${timeTone}里，地球把这片天空轻轻托在轨道上。`,
+    cloudCover == null
+      ? "云层数据还在抵达，但地球表面的光影已经开始说明此刻的天气。"
+      : cloudCover > 75
+        ? `云量约 ${cloudCover}%，天空被云层压低，光变得更安静。`
+        : cloudCover > 35
+          ? `云量约 ${cloudCover}%，云正在经过，而不是停留。`
+          : `云量约 ${cloudCover}%，天空留出了足够的空白让光经过。`,
+    moonAltitude == null
+      ? "月亮的位置还在估算中，但它仍然在这个夜晚的几何关系里。"
+      : moonAltitude >= 0
+        ? `月亮在地平线上方 ${moonAltitude}°，像一枚缓慢移动的坐标。`
+        : `月亮还在地平线下 ${Math.abs(moonAltitude)}°，夜色已经为它留出位置。`,
+    `月相约 ${phase}% 被照亮，天空没有要求它永远完整。`,
+    getSunLine(snapshot, sunAltitude),
+    "地球没有切换场景，只是在更大的尺度上继续转动。"
+  ];
+
+  return lines.filter(Boolean);
+}
+
+function getSunLine(snapshot, sunAltitude) {
+  if (!Number.isFinite(sunAltitude)) return "太阳几何还在更新，昼夜边界仍然沿着地表缓慢移动。";
+  if (sunAltitude > 8) return `太阳高度约 ${Math.round(sunAltitude)}°，白昼正在地表展开。`;
+  if (sunAltitude >= -6) return "太阳贴近地平线，天空正在交接白昼和夜晚。";
+  return "太阳已经落到地平线下，城市灯光开始在夜面上变清楚。";
+}
+
+function getTimeTone(localHour, sunAltitude) {
+  if (Number.isFinite(sunAltitude) && sunAltitude < -6) return "夜色";
+  if (localHour >= 5 && localHour < 10) return "清晨";
+  if (localHour >= 10 && localHour < 17) return "白昼";
+  if (localHour >= 17 && localHour < 20) return "黄昏";
+  return "夜色";
+}
+
+function getLocalHour(date, longitude, timeZone) {
+  if (timeZone) {
+    const value = new Intl.DateTimeFormat("en-US", {
+      hour: "numeric",
+      hour12: false,
+      timeZone
+    }).format(date);
+    return Number(value);
+  }
+
+  return (date.getUTCHours() + longitude / 15 + 24) % 24;
+}

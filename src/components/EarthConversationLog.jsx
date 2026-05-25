@@ -47,6 +47,11 @@ function describeAttachments(attachments = []) {
 function formatAction(action) {
   if (action.type === "set_mode") return `set mode: ${action.mode}`;
   if (action.type === "focus_photo_marker") return `focus photo: ${action.id}`;
+  if (action.type === "camera_travel") return `camera: ${action.target || "travel"}`;
+  if (action.type === "highlight") return `highlight: ${action.target}`;
+  if (action.type === "pulse_layer") return `pulse: ${action.layer}`;
+  if (action.type === "suggest_observe") return `suggest observe: ${action.focus}`;
+  if (action.type === "save_sky_memory") return action.id ? `saved memory: ${action.label || action.id}` : `save memory: ${action.status || "pending"}`;
   return action.type.replaceAll("_", " ");
 }
 

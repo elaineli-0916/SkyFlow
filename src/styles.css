@@ -685,6 +685,30 @@ select {
   width: 100%;
 }
 
+.observe-suggestion {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.42rem;
+  width: fit-content;
+  margin: 0 0 0.58rem;
+  border: 1px solid rgba(168, 255, 230, 0.2);
+  background: rgba(168, 255, 230, 0.07);
+  padding: 0.46rem 0.62rem;
+  color: rgba(226, 255, 247, 0.84);
+  cursor: pointer;
+  font-family: IBM Plex Mono, SFMono-Regular, Consolas, monospace;
+  font-size: 0.6rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  transition: background 180ms ease, border-color 180ms ease, transform 180ms ease;
+}
+
+.observe-suggestion:hover {
+  border-color: rgba(168, 255, 230, 0.42);
+  background: rgba(168, 255, 230, 0.12);
+  transform: translateY(-1px);
+}
+
 .earth-command-form {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 2.1rem 2.1rem 2.1rem;
@@ -966,7 +990,8 @@ select {
 
 .photo-memory-floating-preview strong,
 .photo-memory-floating-preview span,
-.photo-memory-floating-preview small {
+.photo-memory-floating-preview small,
+.photo-memory-floating-preview em {
   display: block;
 }
 
@@ -989,6 +1014,15 @@ select {
   margin-top: 0.35rem;
   color: rgba(255, 238, 190, 0.56);
   font-size: 0.56rem;
+}
+
+.photo-memory-floating-preview em {
+  margin-top: 0.42rem;
+  color: rgba(242, 255, 251, 0.76);
+  font-family: ui-serif, Georgia, Cambria, "Times New Roman", serif;
+  font-size: 0.72rem;
+  font-style: normal;
+  line-height: 1.35;
 }
 
 @keyframes photo-preview-in {

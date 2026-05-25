@@ -107,7 +107,9 @@ function buildUserContent(text, attachments = [], context) {
         "Return compact JSON only with this shape:",
         "{\"text\":\"...\",\"actions\":[],\"memoriesToSave\":[]}",
         "",
-        "Use actions only when the UI should visibly do something. Do not include set_mode observe unless the user asked for spatial sky, sun, moon, cloud, weather, or local telemetry."
+        "Use actions only when the UI should visibly do something. The frontend will ignore unknown or unsafe actions.",
+        "Do not include set_mode observe unless the user asked for spatial sky, sun, moon, cloud, weather, or local telemetry.",
+        "If the user asks to save an uploaded sky photo, include save_sky_memory with a short description and tags, but never invent missing GPS or capture time."
       ].join("\n")
     }
   ];

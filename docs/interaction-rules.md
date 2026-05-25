@@ -53,12 +53,19 @@ If the model returns plain text or malformed JSON, the backend falls back to a s
 
 The model may suggest only these actions:
 
+- `camera_travel`
 - `focus_photo_marker`
+- `highlight`
+- `pulse_layer`
+- `save_sky_memory`
+- `suggest_observe`
 - `show_night_side`
 - `show_sunlight`
 - `set_mode`
 
 The frontend executes only allowlisted actions. The model should not directly manipulate UI state.
+
+The frontend remains the final arbiter. Model actions are treated as suggestions and may be ignored when they would break immersion, mis-route an image question, or save a sky memory without required metadata.
 
 ## Ask to Observe Transition
 
@@ -70,6 +77,8 @@ Do not jump to Observe for:
 - Image-inspection questions after an upload, such as "what is this", "what is in this image", "what kind of cloud is this", or "这是什么云".
 - Questions about the content of a photo, the type of cloud in an image, or an observed phenomenon inside the uploaded image rather than the user's live local sky.
 - Image-only submissions without an explicit request to observe the local sky.
+
+When the answer benefits from telemetry but should not force a mode change, use `suggest_observe` instead of `set_mode`. The UI shows a small action button in Ask, and the user chooses whether to enter Observe.
 
 When Ask does move into Observe, the transition should feel like the Earth is guiding the user to the answer, not like the app is switching tabs. Treat the handoff as a three-step interaction:
 
@@ -126,6 +135,19 @@ Do not save:
 - Raw uploaded media
 
 The first implementation stores memory in `server/storage/memories.json`. Later upgrades can move to SQLite plus vector retrieval.
+
+## Sky Memory Rules
+
+Sky memories are created only when the user explicitly asks to save or remember an uploaded sky photo. Uploading an image for analysis should not save it.
+
+The first public demo stores sky memories in browser local storage under `skyflow.skyMemories.v1`. It saves a thumbnail data URL, place label, latitude, longitude, capture time, short description, tags, and created time.
+
+Photo metadata priority:
+
+1. Read EXIF GPS and capture time from the original image.
+2. If GPS is missing, ask the user where the photo was taken.
+3. If capture time is missing, ask the user for the time.
+4. Do not let the model invent missing place or time.
 
 ## Tone
 
