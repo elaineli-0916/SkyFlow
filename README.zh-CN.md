@@ -1,264 +1,106 @@
-# SkyFlow：关于观察、陪伴与天空记忆的地球之窗
+# SkyFlow
 
-![SkyFlow preview](./docs/images/skyflow-preview.png)
+**一个可以用手势进入的地球，也是一张关于城市、迁徙与个人记忆的空间地图。**
 
-SkyFlow 是一个 AI Native 的沉浸式实时地球陪伴界面。
+[English](./README.md) · [在线体验](https://sky-flow-eosin.vercel.app/) · [原版地球体验](https://sky-flow-eosin.vercel.app/?view=classic)
 
-它不是一个传统天气 App，也不是一个把聊天框放在地球旁边的 AI 助手。它更像一个安静的地球之窗：你可以看见云层经过、昼夜交换、月亮升起，也可以把自己拍下的天空放回地球上。
+SkyFlow 把一段个人旅程放进真实的地球空间：从宇航员视角观察地球，沿城市轨迹飞行，进入卫星地图与香港 3D 沙盘，再在照片的拍摄位置打开一段记忆。
 
-它试图回答的不是“今天几度”，而是：我们如何重新感知自己正在真实世界之中。
+地球本身就是界面。音乐、镜头、城市、天气、月亮与照片一起完成叙事。
 
-English version: [README.md](./README.md)
+> 这个人一直在迁徙，也一直在观察世界。
 
-## 在线体验
+## 从太空开始
 
-- Demo：[sky-flow-eosin.vercel.app](https://sky-flow-eosin.vercel.app/)
-- Demo Video：[Bilibili 3 分钟演示](https://www.bilibili.com/video/BV1rNGJ69EU8/)
-- GitHub：[elaineli-0916/SkyFlow](https://github.com/elaineli-0916/SkyFlow)
+开场是宇航员第一视角。地球保持缓慢自转，观察者可以转头、环绕、悬停、靠近或远离。光锥会跟随鼠标落在地球表面，让视线拥有明确的方向。
 
-## 你会看到什么
+手势追踪只在用户主动开启后运行。MediaPipe Hand Landmarker 在本地 Web Worker 中识别手掌，并在摄像头预览里标出绿色指骨与关键点：
 
-打开 SkyFlow 后，首先出现的是一颗缓慢呼吸的 3D 地球。它会显示昼夜边界、云层、大气辉光、星空背景，以及你所在位置附近的时间和天空状态。
+| 手势 | 镜头反馈 |
+| --- | --- |
+| 单手左右移动 | 连续环绕地球；动作幅度和速度越大，环绕越快 |
+| 单手张开 | 靠近地球 |
+| 单手握拳 | 远离地球 |
 
-你可以拖拽地球，观察不同经纬度正在经历的白昼和夜晚；也可以打开云层、网格、声音氛围，或者让视角回到你的位置。
+鼠标、滚轮和键盘控制始终保留。
 
-界面不会急着把信息塞满屏幕。它更像一个正在运行的轨道窗口：光在移动，云在经过，月亮和地球保持着缓慢的关系。
+## 沿着轨迹出发
 
-## 三种使用方式
+点击 **沿着轨迹出发**，音乐与镜头同时开始，依次经过：
 
-### Companion：安静地看地球
+**北京 → 上海 → 纽约 → 马里兰 → 北京 → 香港 → 上海 → 北京**
 
-Companion 是 SkyFlow 的默认状态。
+每一站都经过完整的空间过渡：镜头从城市拉回太空，沿轨迹越过地球，再下降到下一个坐标。抵达后，照片会在拍摄位置展开；用户也可以随时打断自动旅程，自由拖拽与缩放。
 
-在这里，你不需要马上提问。界面会以很低的频率切换一行环境式文字，描述月亮、云、日出、日落、城市夜色和自然连接。它像一个安静的旁白，让地球不只是可视化对象，而是一个正在发生的时间场景。
+## 从地球进入城市
 
-你可以：
+北京与纽约以近距离卫星视图呈现。香港会进一步展开成一张风格统一的低模 3D 沙盘：
 
-- 拖拽地球查看不同角度。
-- 松开鼠标后停留在当前视角，稍后继续缓慢自动旋转。
-- 查看本地时间、月亮高度和下一次光照变化。
-- 开关云层、参考网格和声音氛围。
+- 陆地、水面、山体、建筑与树木均为独立三维几何；
+- 海岸线以及港岛、九龙之间的空间关系来自真实地理数据；
+- 香港大学、IFC、ICC、中银大厦、太平山顶等重点建筑拥有单独的立面表达；
+- 日落与夜间两种模式保留建筑轮廓，并在夜间点亮窗户；
+- 个人照片以真实坐标落在沙盘中，可随镜头靠近展开。
 
-### Ask：向地球提问
+## 天空仍然在场
 
-Ask 是自然语言入口。
+SkyFlow 保留了原有的天气与天文能力，包括实时天气、云量、日落时间、月相和本地天空计算。此前的 Companion / Ask / Observe 体验也仍然保留，可以从页面右上角进入 **原版体验**。
 
-你可以输入问题、上传图片，或者使用麦克风说话。SkyFlow 会把问题和当前地球状态结合起来回答。
+## 技术结构
 
-适合 Ask 的问题包括：
+SkyFlow 使用 React + Vite 构建，并连接两套 3D 场景：
 
-- `Where is the moon now?`
-- `show me the night side`
-- `这是什么云`
-- `这张照片像在哪里拍的？`
+- **CesiumJS**：3D 地球、卫星城市、迁徙弧线、镜头飞行与空间照片；
+- **Three.js / React Three Fiber**：香港风格化 3D 沙盘；
+- **MediaPipe Tasks Vision**：在独立线程中进行本地手部识别；
+- **Open-Meteo 与本地天文计算**：提供天气、日落与月亮信息；
+- **服务端地图代理**：Google Maps API Key 不进入浏览器代码。
 
-普通回答会留在 Ask 中。比如图片识别、云类型判断、照片内容解释，不会突然跳转到其他界面。只有当问题更适合通过空间位置展示时，SkyFlow 才会带你进入 Observe。
-
-Ask 到 Observe 的过渡会尽量保持沉浸感：先给一句简短回应，再让地球视角移动，最后进入观测界面并高亮相关信息。
-
-### Observe：理解此刻的天空
-
-Observe 是本地天空观测状态。
-
-它用更清晰的方式展示你所在位置附近的太阳、月亮和天气信息：
-
-- 当前地点和经纬度。
-- 太阳路径、日出、日落和太阳方位。
-- 月亮路径、月出、月落、中天时间、月亮高度和月相。
-- 天气摘要、云量和下一次光照变化。
-- 页面底部的数据来源说明。
-
-如果你问月亮，Observe 会高亮月亮路径和月亮高度；如果你问太阳或日落，它会高亮太阳路径；如果你问云层或天气，它会高亮天气与云量信息。
-
-## 观察、陪伴与记录
-
-SkyFlow 希望把“看见天空”变成一种可以被保留的体验。
-
-项目中已经有天空记忆标记：照片可以被放回地球上的地点，例如 Yueyang、College Park、Provideniya 和 Los Angeles。用户不只是上传一张图片，而是在地球上重新定位一次自己的天空经验。
-
-当前记录分为两类：
-
-- 对话记录：显示用户输入、附件、回答和触发的界面动作。
-- 天空记忆：当用户明确要求保存照片时，读取照片中的拍摄时间和 GPS；如果缺少地点或时间，Ask 会继续追问，再把这张天空放回地球上。
-
-第一版天空记忆保存在当前浏览器的 localStorage 中，不需要登录，也不会上传到云端同步。
-
-## 测试玩法
-
-下面这些问题可以用来测试 SkyFlow 的互动规则。重点不是看它能不能回答，而是看它会不会用正确的方式驱动地球界面。
-
-### 1. 让 Ask 带你进入 Observe
-
-输入：
+前端同时保留了一个受约束的 AI Director 动作接口：
 
 ```text
-Where is the moon now?
+fly_to · show_overlay · show_photo · show_moon_path · narrate
 ```
 
-预期体验：
-
-- Ask 先给一句简短回应，而不是立刻切换页面。
-- 地球视角移动到与你当前位置相关的观测角度。
-- 进入 Observe 后，月亮路径和月亮高度会被短暂高亮。
-
-也可以试：
-
-```text
-When is sunset?
-```
-
-```text
-Show me the cloud cover above me.
-```
-
-### 2. 只移动地球，不切换模式
-
-输入：
-
-```text
-show me the night side
-```
-
-预期体验：
-
-- 保持在 Ask。
-- 地球转向夜面，城市灯光和暗面成为视觉重点。
-- 对话记录里会显示触发了 `show_night_side` 动作。
-
-再试：
-
-```text
-show me the sunlight edge
-```
-
-SkyFlow 会沿着昼夜边界移动视角，而不是把回答变成一段长解释。
-
-### 3. 上传图片，只问“这是什么云”
-
-上传一张云的照片，然后输入：
-
-```text
-这是什么云？
-```
-
-预期体验：
-
-- 仍然停留在 Ask。
-- 不自动跳转 Observe。
-- 回答聚焦图片内容和云的形态。
-- 如果模型认为需要提示云层，只能轻微触发云层提示，不应该切走。
-
-这个测试用来确认：SkyFlow 能区分“照片里的云”和“我头顶的实时天空”。
-
-### 4. 把天空照片保存成记忆
-
-上传一张天空照片，然后输入：
-
-```text
-把这张天空记下来
-```
-
-预期体验：
-
-- 如果照片里有 GPS 和拍摄时间，SkyFlow 会直接保存。
-- 如果缺少 GPS，它会问：这张照片在哪里拍的？
-- 如果缺少拍摄时间，它会继续问拍摄时间。
-- 保存后，地球会转到对应地点，并出现新的天空记忆标记。
-- 刷新页面后，本地保存的标记仍然存在。
-
-### 5. 看 Companion 的实时旁白
-
-回到 Companion，停留 30 秒左右。
-
-预期体验：
-
-- 旁白仍然每 10 秒平滑切换。
-- 内容会根据当前云量、太阳高度、月亮高度、月相和本地时间变化。
-- 它不会表现得过度主动，也不会使用用户兴趣记忆；它只是更准确地描述此刻天空。
-
-## 技术实现
-
-SkyFlow 使用 React + Vite 构建前端界面，使用 Three.js / React Three Fiber 渲染实时 3D 地球。
-
-天气、云量、日出和日落信息来自 Open-Meteo。太阳与月亮位置由本地天文计算补充，月亮的月出、月落和中天信息可通过后端请求 Timeanddate 数据。
-
-Ask 模式通过服务端接口调用大模型。浏览器只请求 SkyFlow 自己的 `/api/earth/chat`，真正的 API Key 保存在服务端环境变量中，不会暴露给前端。
-
-主要技术栈：
-
-- React
-- Vite
-- Tailwind CSS
-- Three.js
-- React Three Fiber
-- Vercel Serverless Functions
-- DashScope Qwen
-- DashScope Paraformer ASR
-- Open-Meteo
-- exifr
-
-## 数据来源与隐私
-
-SkyFlow 使用以下数据来源：
-
-- 浏览器地理位置：用于计算本地时间、天气、太阳和月亮信息。
-- Open-Meteo：用于天气、云量、风速、日出和日落。
-- 本地天文计算：用于太阳方位、太阳高度、月亮方位、月亮高度和月相。
-- Timeanddate：可选用于更完整的月亮时间数据。
-- DashScope Qwen：用于 Ask 模式中的自然语言回答。
-- DashScope Paraformer：用于麦克风语音转写。
-- exifr：用于在浏览器端读取照片拍摄时间和 GPS 信息。
-
-隐私原则：
-
-- API Key 只保存在服务端环境变量中。
-- 不要把密钥写入前端代码，也不要使用 `VITE_` 前缀保存密钥。
-- 图片用于当前问题的理解；只有用户明确要求保存时，才会在当前浏览器中保存缩略图和天空记忆元数据。
-- 天空记忆第一版保存在 localStorage，不会自动同步到云端。
+动作会按顺序执行。后续自然语言模型可以生成镜头与图层计划，但不会直接接管界面状态。
 
 ## 本地运行
 
-安装依赖：
-
 ```bash
 npm install
+cp .env.example .env
 ```
 
-启动本地 API 服务：
+按需在 `.env` 中配置服务端密钥：
+
+```bash
+GOOGLE_MAPS_API_KEY=
+DASHSCOPE_API_KEY=
+QWEN_MODEL=qwen3.5-omni-plus
+DASHSCOPE_ASR_MODEL=paraformer-v2
+SERVER_PORT=8787
+```
+
+分别启动后端与前端：
 
 ```bash
 npm run server
 ```
 
-启动前端开发服务：
-
 ```bash
 npm run dev
 ```
 
-构建生产版本：
+打开 [http://localhost:5173](http://localhost:5173)。摄像头手势追踪需要浏览器授权，并应在 localhost 或 HTTPS 环境中使用。
+
+生产构建：
 
 ```bash
 npm run build
 ```
 
-## 部署说明
+## 当前范围
 
-项目已支持 Vercel 部署。
+这是一个可运行的 MVP。香港是目前完成完整沙盘建模的城市；北京与纽约暂时使用近距离卫星视图。AI Director 已保留动作协议，后续可继续接入自然语言导演能力。
 
-Vercel 环境变量需要配置：
-
-```bash
-DASHSCOPE_API_KEY=your_dashscope_key
-QWEN_MODEL=qwen3.5-omni-plus
-DASHSCOPE_ASR_MODEL=paraformer-v2
-```
-
-构建设置：
-
-```text
-Build command: npm run build
-Output directory: dist
-```
-
-更详细的部署说明见：[docs/vercel-deployment.md](./docs/vercel-deployment.md)
+旧版 Earth Companion README 已完整保存在 [docs/legacy/README-v1.zh-CN.md](./docs/legacy/README-v1.zh-CN.md)，部署说明见 [docs/vercel-deployment.md](./docs/vercel-deployment.md)。
