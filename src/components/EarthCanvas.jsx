@@ -2,11 +2,27 @@ import { Canvas, useFrame, useLoader, useThree } from "@react-three/fiber";
 import { Html, OrbitControls, Stars } from "@react-three/drei";
 import { Suspense, forwardRef, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
+import { PROJECT_UNIVERSE_ITEMS } from "../services/projectUniverseService.js";
 import { getSubsolarDirection } from "../utils/astro.js";
 
 const EARTH_AXIAL_TILT = THREE.MathUtils.degToRad(23.44);
 
-function EarthCanvas({ snapshot, now, showClouds, showGrid, resetViewSignal, mode, visualCommand, photoMarkers = [], onPhotoPreviewChange }) {
+function EarthCanvas({
+  snapshot,
+  now,
+  showClouds,
+  showGrid,
+  resetViewSignal,
+  mode,
+  visualCommand,
+  photoMarkers = [],
+  onPhotoPreviewChange,
+  selectedProjectId,
+  focusedProjectId,
+  onProjectSelect,
+  onProjectFocus,
+  onProjectReset
+}) {
   const sunDirection = useMemo(() => getSubsolarDirection(now), [now]);
   const tiltedSunDirection = useMemo(
     () => sunDirection.clone().applyAxisAngle(new THREE.Vector3(0, 0, 1), -EARTH_AXIAL_TILT).normalize(),
@@ -35,6 +51,14 @@ function EarthCanvas({ snapshot, now, showClouds, showGrid, resetViewSignal, mod
             onPhotoPreviewChange={onPhotoPreviewChange}
           />
           <MoonMarker snapshot={snapshot} now={now} visualCommand={visualCommand} />
+          <ProjectUniverse
+            active={mode === "homepage"}
+            selectedProjectId={selectedProjectId}
+            focusedProjectId={focusedProjectId}
+            onProjectSelect={onProjectSelect}
+            onProjectFocus={onProjectFocus}
+            onProjectReset={onProjectReset}
+          />
           <CameraControls
             snapshot={snapshot}
             resetViewSignal={resetViewSignal}
@@ -348,6 +372,285 @@ function PhotoMemoryMarker({ marker, onPhotoPreviewChange }) {
   );
 }
 
+function ProjectUniverse({ active, selectedProjectId, focusedProjectId, onProjectSelect, onProjectFocus, onProjectReset }) {
+  const groupRef = useRef();
+
+  useEffect(() => {
+    if (!active) return undefined;
+
+    function handleKeyDown(event) {
+      if (event.defaultPrevented) return;
+      const key = event.key.toLowerCase();
+      if (key === "escape") {
+        event.preventDefault();
+        onProjectReset?.();
+        return;
+      }
+      if ((key === "enter" || key === " ") && focusedProjectId) {
+        event.preventDefault();
+        onProjectSelect?.(focusedProjectId);
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [active, focusedProjectId, onProjectReset, onProjectSelect]);
+
+  useFrame(({ clock }) => {
+    if (!groupRef.current) return;
+    const elapsed = clock.getElapsedTime();
+    groupRef.current.rotation.y = Math.sin(elapsed * 0.1) * 0.035;
+  });
+
+  if (!active) return null;
+
+  return (
+    <>
+      <group ref={groupRef}>
+        <ProjectOrbitRing />
+        {PROJECT_UNIVERSE_ITEMS.filter((project) => project.id !== "skyflow").map((project) => (
+          <ProjectObject
+            key={project.id}
+            project={project}
+            isSelected={selectedProjectId === project.id}
+            isFocused={focusedProjectId === project.id}
+            onSelect={onProjectSelect}
+            onFocus={onProjectFocus}
+          />
+        ))}
+        <EarthProjectCore
+          project={PROJECT_UNIVERSE_ITEMS[0]}
+          isSelected={selectedProjectId === "skyflow"}
+          isFocused={focusedProjectId === "skyflow"}
+          onSelect={onProjectSelect}
+          onFocus={onProjectFocus}
+        />
+      </group>
+    </>
+  );
+}
+
+function ProjectOrbitRing() {
+  const ringRef = useRef();
+
+  useFrame(({ clock }) => {
+    if (!ringRef.current) return;
+    ringRef.current.rotation.z = clock.getElapsedTime() * 0.035;
+  });
+
+  return (
+    <group ref={ringRef}>
+      <mesh rotation={[Math.PI / 2, 0, 0]}>
+        <torusGeometry args={[2.72, 0.0035, 8, 192]} />
+        <meshBasicMaterial color="#b8f7ff" transparent opacity={0.16} blending={THREE.AdditiveBlending} depthWrite={false} />
+      </mesh>
+      <mesh rotation={[Math.PI / 2.45, 0, Math.PI / 7]}>
+        <torusGeometry args={[2.15, 0.0024, 8, 160]} />
+        <meshBasicMaterial color="#ffe9a6" transparent opacity={0.1} blending={THREE.AdditiveBlending} depthWrite={false} />
+      </mesh>
+    </group>
+  );
+}
+
+function EarthProjectCore({ project, isSelected, isFocused, onSelect, onFocus }) {
+  return (
+      <ProjectHitTarget
+      project={project}
+      radius={1.02}
+      isSelected={isSelected}
+      isFocused={isFocused}
+      onSelect={onSelect}
+      onFocus={onFocus}
+    >
+      <mesh rotation={[0.1, 0.4, 0]}>
+        <torusGeometry args={[1.35, 0.006, 8, 192]} />
+        <meshBasicMaterial color={project.accent} transparent opacity={isFocused ? 0.5 : 0.24} blending={THREE.AdditiveBlending} depthWrite={false} />
+      </mesh>
+      <ProjectLabel project={project} offset={[0, -1.28, 0]} onSelect={onSelect} onFocus={onFocus} />
+    </ProjectHitTarget>
+  );
+}
+
+function ProjectObject({ project, isSelected, isFocused, onSelect, onFocus }) {
+  const objectRef = useRef();
+
+  useFrame(({ clock }) => {
+    if (!objectRef.current) return;
+    const elapsed = clock.getElapsedTime();
+    objectRef.current.rotation.y += 0.004;
+    objectRef.current.position.y = project.position[1] + Math.sin(elapsed * 1.2 + project.position[0]) * 0.035;
+  });
+
+  return (
+    <ProjectHitTarget
+      project={project}
+      radius={0.42}
+      isSelected={isSelected}
+      isFocused={isFocused}
+      onSelect={onSelect}
+      onFocus={onFocus}
+    >
+      <group ref={objectRef}>
+        <ProjectShape project={project} active={isSelected || isFocused} />
+      </group>
+      <ProjectLabel project={project} offset={[0, -0.44, 0]} onSelect={onSelect} onFocus={onFocus} />
+    </ProjectHitTarget>
+  );
+}
+
+function ProjectHitTarget({ project, radius, isSelected, isFocused, onSelect, onFocus, children }) {
+  const haloRef = useRef();
+  const color = useMemo(() => new THREE.Color(project.accent), [project.accent]);
+
+  useFrame(({ camera, clock }) => {
+    if (!haloRef.current) return;
+    haloRef.current.lookAt(camera.position);
+    haloRef.current.scale.setScalar((isSelected ? 0.72 : isFocused ? 0.62 : 0.48) + Math.sin(clock.getElapsedTime() * 1.6) * 0.02);
+  });
+
+  return (
+    <group position={project.position}>
+      <mesh
+        onClick={(event) => {
+          event.stopPropagation();
+          onSelect?.(project.id);
+        }}
+        onPointerOver={(event) => {
+          event.stopPropagation();
+          onFocus?.(project.id);
+          document.body.style.cursor = "pointer";
+        }}
+        onPointerOut={(event) => {
+          event.stopPropagation();
+          onFocus?.(null);
+          document.body.style.cursor = "";
+        }}
+      >
+        <sphereGeometry args={[radius, 24, 24]} />
+        <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+      </mesh>
+      <mesh ref={haloRef}>
+        <ringGeometry args={[1, 1.18, 64]} />
+        <meshBasicMaterial color={color} transparent opacity={isSelected ? 0.64 : isFocused ? 0.42 : 0.16} blending={THREE.AdditiveBlending} depthWrite={false} />
+      </mesh>
+      {children}
+    </group>
+  );
+}
+
+function ProjectShape({ project, active }) {
+  const material = (
+    <meshStandardMaterial
+      color={project.accent}
+      emissive={project.accent}
+      emissiveIntensity={active ? 0.78 : 0.34}
+      roughness={0.38}
+      metalness={0.22}
+    />
+  );
+
+  if (project.model === "console") {
+    return (
+      <group>
+        <mesh scale={[0.62, 0.28, 0.18]}>
+          <boxGeometry args={[1, 1, 1]} />
+          {material}
+        </mesh>
+        <mesh position={[0, 0.19, 0.03]} scale={[0.38, 0.08, 0.03]}>
+          <boxGeometry args={[1, 1, 1]} />
+          <meshBasicMaterial color="#fff4d2" transparent opacity={0.72} />
+        </mesh>
+      </group>
+    );
+  }
+
+  if (project.model === "studio") {
+    return (
+      <group>
+        <mesh>
+          <coneGeometry args={[0.26, 0.58, 5]} />
+          {material}
+        </mesh>
+        <mesh position={[0, 0.34, 0]}>
+          <sphereGeometry args={[0.12, 24, 24]} />
+          <meshBasicMaterial color="#fff1f4" />
+        </mesh>
+      </group>
+    );
+  }
+
+  if (project.model === "block") {
+    return (
+      <mesh rotation={[0.28, 0.45, 0.18]}>
+        <boxGeometry args={[0.48, 0.48, 0.48]} />
+        {material}
+      </mesh>
+    );
+  }
+
+  if (project.model === "film") {
+    return (
+      <group>
+        <mesh rotation={[Math.PI / 2, 0, 0]}>
+          <torusGeometry args={[0.24, 0.055, 16, 64]} />
+          {material}
+        </mesh>
+        <mesh rotation={[0, 0, Math.PI / 4]}>
+          <boxGeometry args={[0.62, 0.055, 0.055]} />
+          <meshBasicMaterial color="#f7f0ff" transparent opacity={0.68} />
+        </mesh>
+      </group>
+    );
+  }
+
+  if (project.model === "capsule") {
+    return (
+      <mesh rotation={[Math.PI / 2, 0, 0]}>
+        <capsuleGeometry args={[0.16, 0.48, 8, 24]} />
+        {material}
+      </mesh>
+    );
+  }
+
+  return (
+    <mesh>
+      <sphereGeometry args={[0.24, 32, 32]} />
+      {material}
+    </mesh>
+  );
+}
+
+function ProjectLabel({ project, offset, onSelect, onFocus }) {
+  function handleSelect(event) {
+    event.stopPropagation();
+    onSelect?.(project.id);
+  }
+
+  return (
+    <Html center distanceFactor={6.2} position={offset} style={{ pointerEvents: "auto" }}>
+      <div
+        className="project-universe-label"
+        role="button"
+        tabIndex={0}
+        aria-label={`Open ${project.title}`}
+        onClick={handleSelect}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            handleSelect(event);
+          }
+        }}
+        onMouseEnter={() => onFocus?.(project.id)}
+        onMouseLeave={() => onFocus?.(null)}
+        onFocus={() => onFocus?.(project.id)}
+        onBlur={() => onFocus?.(null)}
+      >
+        <span>{project.label}</span>
+      </div>
+    </Html>
+  );
+}
+
 function getPreviewStyle(object, camera, size) {
   const world = new THREE.Vector3();
   object.getWorldPosition(world);
@@ -355,7 +658,7 @@ function getPreviewStyle(object, camera, size) {
 
   const screenX = (world.x * 0.5 + 0.5) * size.width;
   const screenY = (-world.y * 0.5 + 0.5) * size.height;
-  const width = Math.min(280, Math.max(218, size.width * 0.42));
+  const width = Math.min(480, Math.max(300, size.width * 0.46));
   const height = width * 0.78;
   const margin = 14;
   const prefersLeft = screenX > size.width * 0.54;
@@ -379,6 +682,7 @@ function CameraControls({ snapshot, resetViewSignal, mode, visualCommand, sunDir
   const targetLookAtRef = useRef(new THREE.Vector3(0, 0, 0));
   const resumeAutoRotateTimerRef = useRef(null);
   const handledVisualCommandRef = useRef(null);
+  const pressedKeysRef = useRef(new Set());
 
   useEffect(() => {
     return () => {
@@ -387,6 +691,41 @@ function CameraControls({ snapshot, resetViewSignal, mode, visualCommand, sunDir
       }
     };
   }, []);
+
+  useEffect(() => {
+    if (mode !== "homepage") {
+      pressedKeysRef.current.clear();
+      return undefined;
+    }
+
+    const movementKeys = new Set(["w", "a", "s", "d", "arrowup", "arrowleft", "arrowdown", "arrowright"]);
+
+    function handleKeyDown(event) {
+      const key = event.key.toLowerCase();
+      if (!movementKeys.has(key)) return;
+      event.preventDefault();
+      pressedKeysRef.current.add(key);
+      pauseAutoRotate();
+      applyHomepageDrift(getHorizontalDirection(key), getForwardDirection(key), 0.16);
+    }
+
+    function handleKeyUp(event) {
+      const key = event.key.toLowerCase();
+      if (!movementKeys.has(key)) return;
+      event.preventDefault();
+      pressedKeysRef.current.delete(key);
+      scheduleAutoRotateResume(1200);
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
+      pressedKeysRef.current.clear();
+    };
+  }, [mode]);
 
   useEffect(() => {
     if (!controlsRef.current || resetViewSignal === 0) return;
@@ -443,20 +782,76 @@ function CameraControls({ snapshot, resetViewSignal, mode, visualCommand, sunDir
       targetLookAtRef.current = surfaceDirection.clone().multiplyScalar(0.12);
       pauseAutoRotate();
     }
+
+    if ((visualCommand.type === "project-focus" || visualCommand.type === "project-reset") && Array.isArray(visualCommand.cameraPosition) && Array.isArray(visualCommand.lookAt)) {
+      targetCameraRef.current = new THREE.Vector3(...visualCommand.cameraPosition);
+      targetLookAtRef.current = new THREE.Vector3(...visualCommand.lookAt);
+      pauseAutoRotate();
+    }
   }, [snapshot.latitude, snapshot.longitude, size.width, sunDirection, visualCommand]);
 
-  useFrame(() => {
-    if (!controlsRef.current || !targetCameraRef.current) return;
+  useFrame((_, delta) => {
+    if (!controlsRef.current) return;
 
-    camera.position.lerp(targetCameraRef.current, 0.035);
-    controlsRef.current.target.lerp(targetLookAtRef.current, 0.04);
-    controlsRef.current.update();
+    if (targetCameraRef.current) {
+      camera.position.lerp(targetCameraRef.current, 0.035);
+      controlsRef.current.target.lerp(targetLookAtRef.current, 0.04);
+      controlsRef.current.update();
 
-    if (camera.position.distanceTo(targetCameraRef.current) < 0.025) {
-      targetCameraRef.current = null;
-      scheduleAutoRotateResume(900);
+      if (camera.position.distanceTo(targetCameraRef.current) < 0.025) {
+        targetCameraRef.current = null;
+        scheduleAutoRotateResume(mode === "homepage" ? 1800 : 900);
+      }
+
+      return;
+    }
+
+    if (mode === "homepage" && pressedKeysRef.current.size > 0) {
+      const keys = pressedKeysRef.current;
+      const horizontal = (keys.has("d") || keys.has("arrowright") ? 1 : 0) - (keys.has("a") || keys.has("arrowleft") ? 1 : 0);
+      const forward = (keys.has("w") || keys.has("arrowup") ? 1 : 0) - (keys.has("s") || keys.has("arrowdown") ? 1 : 0);
+      applyHomepageDrift(horizontal, forward, delta * 0.72);
     }
   });
+
+  function applyHomepageDrift(horizontal, forward, amount) {
+    if (!controlsRef.current || mode !== "homepage") return;
+    const cameraForward = controlsRef.current.target.clone().sub(camera.position);
+    cameraForward.y = 0;
+    if (cameraForward.lengthSq() < 0.0001) {
+      cameraForward.set(0, 0, -1);
+    }
+    cameraForward.normalize();
+    const cameraRight = new THREE.Vector3().crossVectors(cameraForward, new THREE.Vector3(0, 1, 0)).normalize();
+    const movement = cameraForward
+      .multiplyScalar(forward)
+      .add(cameraRight.multiplyScalar(horizontal));
+
+    if (movement.lengthSq() <= 0.0001) return;
+
+    movement.normalize().multiplyScalar(amount);
+    const nextTarget = controlsRef.current.target.clone().add(movement);
+    const nextCamera = camera.position.clone().add(movement);
+    const targetLimit = 1.15;
+    const cameraLimit = 6.2;
+    if (nextTarget.length() < targetLimit && nextCamera.length() < cameraLimit) {
+      controlsRef.current.target.copy(nextTarget);
+      camera.position.copy(nextCamera);
+      controlsRef.current.update();
+    }
+  }
+
+  function getHorizontalDirection(key) {
+    if (key === "d" || key === "arrowright") return 1;
+    if (key === "a" || key === "arrowleft") return -1;
+    return 0;
+  }
+
+  function getForwardDirection(key) {
+    if (key === "w" || key === "arrowup") return 1;
+    if (key === "s" || key === "arrowdown") return -1;
+    return 0;
+  }
 
   function pauseAutoRotate() {
     if (resumeAutoRotateTimerRef.current) {
@@ -493,7 +888,7 @@ function CameraControls({ snapshot, resetViewSignal, mode, visualCommand, sunDir
       zoomSpeed={0.45}
       minDistance={2.35}
       maxDistance={6.4}
-      autoRotate={!autoRotatePaused}
+      autoRotate={!autoRotatePaused && mode !== "homepage"}
       autoRotateSpeed={0.08}
       onStart={() => {
         cancelProgrammaticMove();

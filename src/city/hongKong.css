@@ -1,0 +1,169 @@
+/* The atlas skin is scoped to Hong Kong. The globe and other cities keep their UI. */
+.city-experience[data-sandbox="true"] { --hk-ink:#254d43; --hk-muted:#77897c; --hk-jade:#357e70; --hk-paper:#fafbf1e8; background:#e5ebdf; }
+.city-experience[data-sandbox="true"] .city-vignette { background:linear-gradient(180deg,#e5ebdf99 0,transparent 24%,transparent 85%,#e5ebdf88); }
+.city-experience[data-sandbox="true"] .city-header { padding:24px 34px; background:none; pointer-events:none; }
+.city-experience[data-sandbox="true"] .city-header a { pointer-events:auto; }
+.city-experience[data-sandbox="true"] .city-header .city-brand { font-size:24px; }
+.city-experience[data-sandbox="true"] .city-brand span { color:#819487; font-size:9px; letter-spacing:2px; }
+.city-experience[data-sandbox="true"] .city-header-right { gap:20px; }
+.city-experience[data-sandbox="true"] .city-header-right a { font-size:10px; color:#698476; }
+.city-experience[data-sandbox="true"] .city-edition { color:#8a9b8e; font-size:8px; }
+.city-experience[data-sandbox="true"] .city-intro,
+.city-experience[data-sandbox="true"] .city-provider,
+.city-experience[data-sandbox="true"] .city-bottom,
+.city-experience[data-sandbox="true"] .city-map-controls { display:none; }
+.city-experience[data-sandbox="true"] button:focus-visible,
+.city-experience[data-sandbox="true"] a:focus-visible { outline:2px solid #337e70; outline-offset:3px; }
+.hk-atlas { overflow:hidden; background:#e5ebdf; color:var(--hk-ink); }
+.hk-ui { position:absolute; inset:0; z-index:40; pointer-events:none; }
+.hk-ui button,.hk-ui a { pointer-events:auto; }
+.hk-ui button { font:inherit; cursor:pointer; color:inherit; }
+.hk-title { position:absolute; left:35px; top:105px; }
+.hk-kicker { font-size:9px; font-weight:600; letter-spacing:2.6px; display:flex; align-items:center; gap:9px; color:#416b5b; }
+.hk-kicker i { width:5px; height:5px; border-radius:50%; background:#5c9e85; }
+.hk-title h1 { font-family:"Songti SC","STSong",Georgia,serif; font-weight:400; font-size:45px; letter-spacing:8px; margin:16px 0 12px; display:flex; align-items:center; gap:18px; }
+.hk-title h1>span { font:10px/1.4 "Songti SC",serif; letter-spacing:2px; padding:3px 2px 3px 4px; border:1px solid #b7b496; color:#9f997b; }
+.hk-title p { font-family:"Songti SC",serif; font-size:12px; color:#819182; letter-spacing:2px; margin:0; }
+.hk-city-switch { position:absolute; left:50%; top:23px; transform:translateX(-50%); display:flex; align-items:center; gap:4px; background:#f8faf09c; border:1px solid #ffffff70; border-radius:30px; padding:5px 8px; backdrop-filter:blur(16px); }
+.hk-city-switch button { display:flex; gap:7px; align-items:center; border:0; background:transparent; padding:7px 13px; font-size:11px; border-radius:20px; color:#7e9181; white-space:nowrap; }
+.hk-city-switch button[aria-current] { background:#367d6c; color:#f3f7e9; }
+.hk-city-switch button:hover { background:#dde8d9; color:#2e6655; }
+.hk-city-switch>span { height:14px; width:1px; background:#9eae963b; margin:0 4px; }
+.hk-light-switch { position:absolute; right:34px; top:101px; display:flex; align-items:center; gap:5px; padding:5px; border:1px solid #ffffffa8; border-radius:13px; background:var(--hk-paper); box-shadow:0 3px 15px #49694708; }
+.hk-light-switch button { display:flex; gap:8px; align-items:center; padding:11px 17px; border:0; border-radius:9px; background:transparent; font-size:11px; color:#7d8e7f; }
+.hk-light-switch button[aria-pressed="true"] { background:#3b8272; color:#f5f8ee; box-shadow:0 2px 6px #3b776820; }
+.hk-light-switch .hk-about { padding:11px; margin-left:2px; border-left:1px solid #dae2d6; border-radius:0; }
+.hk-places { position:absolute; top:264px; left:34px; width:238px; border-radius:17px; padding:21px 15px 14px; background:var(--hk-paper); border:1px solid #ffffffd0; box-shadow:0 12px 38px #55714f0a; backdrop-filter:blur(18px); }
+.hk-places-heading { display:flex; justify-content:space-between; align-items:center; padding:0 6px 18px; }
+.hk-places-heading strong { font-size:12px; letter-spacing:1px; font-weight:600; }
+.hk-places-heading>span { color:#8b9b8c; font-size:10px; }
+.hk-list-caption { display:flex; justify-content:space-between; padding:10px 10px; border-radius:7px; margin-bottom:9px; background:#e8eddf99; font-size:10px; color:#62816c; }
+.hk-list-caption>span { font-size:8px; letter-spacing:1px; color:#9aaa98; }
+.hk-places>button { display:flex; gap:12px; width:100%; align-items:center; text-align:left; background:transparent; border:1px solid transparent; padding:9px 6px; border-radius:8px; transition:background .2s; }
+.hk-places>button:hover { background:#e7efdf; }
+.hk-places>button[aria-pressed="true"] { background:#e4eddd; border-color:#d9e5d0; }
+.hk-index { display:grid; place-items:center; font-family:Georgia,serif; font-size:11px; height:30px; width:27px; border:1px solid #d8e0d28c; border-radius:6px; color:#91a18c; flex-shrink:0; }
+.hk-places>button[aria-pressed="true"] .hk-index { background:#3e8270; border-color:#3e8270; color:#f0f6e6; }
+.hk-place-name { display:flex; flex-direction:column; gap:4px; }
+.hk-place-name strong { font-size:12px; font-weight:500; letter-spacing:.5px; }
+.hk-place-name small { font-size:9px; letter-spacing:.1px; color:#8d9c8c; }
+.hk-places>button>svg { margin-left:auto; color:#9baa97; }
+.hk-list-footer { display:flex; align-items:center; justify-content:space-between; border-top:1px solid #d8e1d280; margin:12px 5px 0; padding-top:13px; font-size:9px; color:#91a08c; }
+.hk-place { pointer-events:auto; position:relative; white-space:nowrap; padding:4px 2px; border:0; border-radius:0; background:transparent; color:#365f4e; font-family:"Avenir Next","PingFang SC",sans-serif; font-size:11px; font-weight:500; box-shadow:none; text-shadow:0 1px 2px #f7faeab3; cursor:pointer; display:flex; align-items:center; gap:5px; }
+.hk-place::after { content:""; position:absolute; left:50%; width:1px; height:13px; bottom:-14px; background:#75978088; }
+.hk-place>span { width:4px; height:4px; background:#5b9b7e; border-radius:50%; }
+.hk-place:hover,.hk-place.is-selected { background:transparent; color:#145c47; box-shadow:none; text-decoration:underline; text-decoration-thickness:1px; text-underline-offset:4px; }
+.hk-place.is-selected>span { background:#237254; }
+.hk-photo-memory-anchor { position:relative; width:22px; height:28px; pointer-events:auto; }
+.hk-photo-pin { position:absolute; inset:2px 1px 3px; display:grid; place-items:center; width:20px; height:24px; padding:0; border:0; background:transparent; cursor:pointer; filter:drop-shadow(0 3px 4px #385b4966); transition:transform .25s ease,filter .25s ease; z-index:2; }
+.hk-photo-pin img { display:block; width:18px; height:21px; object-fit:contain; }
+.hk-photo-pin:hover,.hk-photo-pin:focus-visible { transform:scale(1.15); filter:drop-shadow(0 4px 6px #315b4d80); }
+.hk-photo-pin-halo { position:absolute; left:5px; bottom:0; width:12px; height:5px; border-radius:50%; background:#2e8b72; opacity:.3; filter:blur(2px); animation:hk-pin-breathe 2.8s ease-in-out infinite; }
+.hk-photo-memory-anchor.is-expanded .hk-photo-pin { transform:scale(.72); transform-origin:bottom center; }
+.hk-photo-memory-anchor.is-expanded .hk-photo-pin-halo { opacity:.1; animation:none; }
+.hk-photo-memory-card { position:absolute; left:18px; bottom:13px; width:420px; padding:0; border:0; border-radius:0; background:transparent; color:#355c4c; box-shadow:none; backdrop-filter:none; transform-origin:left bottom; animation:hk-memory-pop .32s cubic-bezier(.2,.8,.2,1) both; z-index:4; pointer-events:none; }
+.hk-photo-memory-card :is(button,a) { pointer-events:auto; }
+.hk-photo-memory-anchor.opens-left .hk-photo-memory-card { left:auto; right:18px; transform-origin:right bottom; }
+.hk-photo-memory-anchor .hk-photo-memory-card { right:auto; bottom:auto; }
+.hk-photo-memory-head { display:flex; align-items:baseline; justify-content:space-between; gap:8px; color:#6f8c78; font:8px/1.2 "Avenir Next",sans-serif; letter-spacing:.5px; }
+.hk-photo-memory-head time { color:#95a895; font-size:7px; }
+.hk-photo-memory-media { width:100%; height:var(--hk-memory-media-height,255px); margin-top:7px; overflow:visible; border-radius:0; background:transparent; }
+.hk-photo-memory-media img { display:block; width:100%; height:100%; object-fit:contain; object-position:left bottom; filter:drop-shadow(0 14px 22px #314d3b38); }
+.hk-photo-memory-caption { display:flex; flex-direction:column; gap:4px; padding:8px 2px 2px; text-shadow:0 1px 7px #f8faef; }
+.hk-photo-memory-caption strong { font:16px/1.35 "Songti SC","STSong",Georgia,serif; color:#3b6756; }
+.hk-photo-memory-caption small { color:#718d7a; font:8px/1.2 monospace; letter-spacing:.2px; }
+.hk-photo-memory-pages { display:flex; align-items:center; justify-content:center; gap:7px; margin-top:4px; color:#8b9d89; font:8px monospace; }
+.hk-photo-memory-pages button,.hk-photo-memory-close { display:grid; place-items:center; border:0; color:#507664; background:transparent; cursor:pointer; }
+.hk-photo-memory-pages button { width:20px; height:20px; border-radius:50%; }
+.hk-photo-memory-pages button:hover { background:#e1ecdf; }
+.hk-photo-memory-close { margin:6px 0 0 2px; padding:2px 0; color:#73917d; font-size:8px; text-shadow:0 1px 7px #f8faef; }
+.hk-photo-memory-close:hover { color:#2d745d; text-decoration:underline; }
+@keyframes hk-memory-pop { from { opacity:0; transform:translate(-4px,5px) scale(.84); } to { opacity:1; transform:translate(0,0) scale(1); } }
+@keyframes hk-pin-breathe { 0%,100% { transform:scale(.8); opacity:.18; } 50% { transform:scale(1.25); opacity:.4; } }
+.hk-place-harbour { font-family:"Songti SC",serif; font-size:14px; letter-spacing:3px; background:transparent!important; border-color:transparent!important; box-shadow:none; color:#f7fae8!important; text-shadow:0 1px 8px #377c6999; transform:translateY(26px); }
+.hk-place-harbour::after,.hk-place-harbour>span { display:none; }
+.hk-compass { position:absolute; right:40px; top:182px; color:#7b9783; display:flex; align-items:center; flex-direction:column; gap:6px; }
+.hk-compass>span { font-size:8px; letter-spacing:1px; }
+.hk-zoom { position:absolute; right:34px; top:266px; display:flex; flex-direction:column; padding:3px; border-radius:11px; background:var(--hk-paper); border:1px solid white; }
+.hk-zoom button { display:grid; place-items:center; width:37px; height:37px; background:transparent; border:0; border-radius:7px; }
+.hk-zoom button:hover { background:#e6eddf; }
+.hk-zoom button+button { border-top:1px solid #dce4d6; border-radius:0; }
+.hk-toolbar { position:absolute; bottom:52px; left:50%; transform:translateX(-50%); display:flex; align-items:center; gap:6px; background:#fbfdf0eb; border:1px solid #ffffffd9; border-radius:15px; padding:7px; box-shadow:0 10px 30px #3856370c; backdrop-filter:blur(18px); }
+.hk-toolbar button { display:flex; align-items:center; justify-content:center; flex-direction:column; gap:8px; height:58px; min-width:61px; padding:8px 13px; border:0; background:transparent; border-radius:9px; color:#718970; }
+.hk-toolbar button>span { font-size:10px; }
+.hk-toolbar button[aria-pressed="true"] { color:#347563; background:#e5eddc; }
+.hk-toolbar button:first-child[aria-pressed="true"] { background:#3c806e; color:#f5fae8; }
+.hk-toolbar button:hover { background:#dfead6; }
+.hk-tool-divider { width:1px; height:30px; background:#d8e2ce; margin:0 3px; }
+.hk-caption { position:absolute; bottom:153px; left:50%; transform:translateX(-50%); font:13px/1.8 "Songti SC",Georgia,serif; letter-spacing:1px; text-align:center; width:540px; max-width:50%; color:#607c64; text-shadow:0 1px 5px #fbfdee; }
+.hk-caption>span { margin-right:12px; font:9px monospace; color:#8e9e85; letter-spacing:2px; }
+.hk-gesture { position:absolute; bottom:133px; left:50%; transform:translateX(-50%); white-space:nowrap; color:#69846f; font-size:10px; letter-spacing:.5px; }
+.hk-atlas[data-drag-mode="pan"] canvas { cursor:grab; touch-action:none; }
+.hk-atlas[data-drag-mode="pan"] canvas:active { cursor:grabbing; }
+.hk-legend { position:absolute; left:38px; bottom:76px; display:flex; flex-direction:column; gap:9px; font-size:9px; color:#8a9b82; }
+.hk-legend>span { display:flex; align-items:center; gap:8px; }
+.hk-legend i { display:block; width:16px; height:3px; border-radius:3px; background:#bdc8af; }.hk-legend .is-forest { background:#7d9e6e; }.hk-legend .is-water { background:#69aa9b; }
+.hk-attribution { position:absolute; left:34px; bottom:20px; display:flex; gap:15px; font-size:8px; color:#9aab91; }.hk-attribution a { color:#7f997a; text-decoration:none; }
+.hk-load-message { position:absolute; top:45%; left:50%; transform:translate(-50%,-50%); z-index:50; padding:22px; background:#f7f9ed; color:#50775f; border-radius:12px; font-size:13px; }.hk-load-message button { display:block; margin:12px auto 0; padding:7px 12px; color:#357360; background:#e1ead6; border:0; border-radius:5px; cursor:pointer; }
+.hk-about-panel { position:absolute; right:34px; top:168px; width:315px; padding:26px; background:#fafcf2f5; border:1px solid white; border-radius:13px; box-shadow:0 12px 40px #4361451a; pointer-events:auto; backdrop-filter:blur(20px); }.hk-about-panel>button { position:absolute; top:13px; right:13px; padding:3px; background:none; border:0; color:#8c9e88; }.hk-about-panel>span { font-size:8px; letter-spacing:2px; color:#8a9c82; }.hk-about-panel h2 { font:20px/1.6 "Songti SC",serif; margin:18px 0; }.hk-about-panel p { font-size:11px; line-height:1.95; color:#748a6e; margin:14px 0 0; }
+.city-experience[data-sandbox="true"] .city-story { top:auto; bottom:111px; right:34px; width:251px; max-height:49%; padding:18px; border-radius:14px; background:#fafcf0e8; border:1px solid #ffffffe0; box-shadow:0 12px 38px #55714f0a; scrollbar-width:thin; }
+.city-experience[data-sandbox="true"] .city-story h2 { font-size:21px; margin:10px 0 8px; }
+.city-experience[data-sandbox="true"] .city-story>p { font-size:9px; line-height:1.8; }
+.city-experience[data-sandbox="true"] .city-story-heading { font-size:7px; letter-spacing:1px; color:#91a086; }
+.city-experience[data-sandbox="true"] .city-location-line { font-size:7px; margin:14px 0; }.city-experience[data-sandbox="true"] .city-location-line time { font-size:14px; }
+.city-experience[data-sandbox="true"] .city-weather-grid { padding:13px 0; gap:5px; border-color:#dce5d2; }.city-experience[data-sandbox="true"] .city-metric>span { font-size:8px; gap:4px; }.city-experience[data-sandbox="true"] .city-metric>span svg { width:13px; }.city-experience[data-sandbox="true"] .city-metric strong { font-size:21px; margin:8px 0 5px; }.city-experience[data-sandbox="true"] .city-metric small { font-size:7px; color:#9aa68f; }
+.city-experience[data-sandbox="true"] .city-data-source { font-size:6px; color:#9ba990; margin:8px 0 13px; }
+.city-experience[data-sandbox="true"] .city-photo { background:transparent; border:0; border-radius:0; overflow:visible; }.city-experience[data-sandbox="true"] .city-photo img { height:190px; opacity:.93; }.city-experience[data-sandbox="true"] .city-photo figcaption { padding:9px 2px; text-shadow:0 1px 7px #f0f3e7; }.city-experience[data-sandbox="true"] .city-photo figcaption span { color:#90a182; font-size:6px; }.city-experience[data-sandbox="true"] .city-photo figcaption strong { color:#54734f; font-size:10px; margin-top:4px; }.city-experience[data-sandbox="true"] .city-photo figcaption a { color:#90a082; font-size:6px; }.city-experience[data-sandbox="true"] .city-photo-note { color:#9ca88e; font-size:7px; padding:0 2px 8px; }.city-experience[data-sandbox="true"] .city-photo-reopen { color:#467e65; font-size:10px; }
+.hk-story-toggle { position:absolute; bottom:64px; right:34px; z-index:4; display:flex; align-items:center; gap:11px; background:#fafcf0eb; border:1px solid white; border-radius:9px; padding:12px 15px; color:#668463; font-size:10px; cursor:pointer; }
+/* One nocturnal palette, including the existing weather / photo panel. */
+.city-experience[data-sandbox="true"]:has(.hk-atlas[data-theme="night"]) { --hk-ink:#d6e3e4; --hk-muted:#90aab4; --hk-jade:#9bcac2; --hk-paper:#182c3deb; color:#d6e3e4; background:#111e2b; }
+.city-experience[data-sandbox="true"]:has(.hk-atlas[data-theme="night"]) .city-vignette { background:linear-gradient(180deg,#101d2980,transparent 25%,transparent 80%,#101d2980); }
+.hk-atlas[data-theme="night"] { background:#111e2b; }
+.hk-atlas[data-theme="night"] :is(.hk-city-switch,.hk-light-switch,.hk-places,.hk-zoom,.hk-toolbar,.hk-about-panel) { background:var(--hk-paper); border-color:#9bbfc326; box-shadow:0 12px 38px #00000012; }
+.hk-atlas[data-theme="night"] :is(.hk-kicker,.hk-title p,.hk-compass,.hk-legend,.hk-gesture,.hk-attribution,.hk-attribution a,.hk-light-switch button,.hk-city-switch button,.hk-toolbar button,.hk-about-panel p) { color:#98b2bd; }
+.hk-atlas[data-theme="night"] .hk-title h1>span { color:#c8b692; border-color:#c8b69255; }
+.hk-atlas[data-theme="night"] :is(.hk-list-caption,.hk-places>button:hover,.hk-toolbar button:hover,.hk-zoom button:hover,.hk-city-switch button:hover) { background:#adc8c412; color:#cbdcdb; }
+.hk-atlas[data-theme="night"] :is(.hk-places-heading>span,.hk-list-caption>span,.hk-place-name small,.hk-index,.hk-list-footer,.hk-caption>span) { color:#8aa6b3; border-color:#9bbfc326; }
+.hk-atlas[data-theme="night"] .hk-places>button[aria-pressed="true"] { background:#719e9e24; border-color:#9bcac234; }
+.hk-atlas[data-theme="night"] :is(.hk-light-switch button[aria-pressed="true"],.hk-city-switch button[aria-current],.hk-toolbar button:first-child[aria-pressed="true"],.hk-places>button[aria-pressed="true"] .hk-index) { color:#edf3e6; background:#466c75; border-color:#6e9595; }
+.hk-atlas[data-theme="night"] .hk-toolbar button[aria-pressed="true"] { color:#c9ded8; background:#96b9b523; }
+.hk-atlas[data-theme="night"] :is(.hk-tool-divider,.hk-city-switch>span) { background:#9bbfc326; }
+.hk-atlas[data-theme="night"] :is(.hk-light-switch .hk-about,.hk-zoom button+button) { border-color:#9bbfc326; }
+.hk-atlas[data-theme="night"] .hk-caption { color:#b6c8cb; text-shadow:0 1px 5px #0d1c2b; }
+.hk-atlas[data-theme="night"] .hk-place { color:#d3e1e1; text-shadow:0 1px 3px #0b1c2bd9; }
+.hk-atlas[data-theme="night"] .hk-place:is(:hover,.is-selected) { color:#ffe3ac; }
+.hk-atlas[data-theme="night"] .hk-place>span { background:#abcfc5; }
+.hk-atlas[data-theme="night"] .hk-place::after { background:#a2c6cb66; }
+.hk-atlas[data-theme="night"] .hk-photo-memory-card { background:transparent; border-color:transparent; color:#d6e3e4; box-shadow:none; }
+.hk-atlas[data-theme="night"] .hk-photo-memory-head,.hk-atlas[data-theme="night"] .hk-photo-memory-head time { color:#8eabb1; }
+.hk-atlas[data-theme="night"] .hk-photo-memory-media { background:transparent; }
+.hk-atlas[data-theme="night"] .hk-photo-memory-media img { filter:drop-shadow(0 14px 22px #06151f99); }
+.hk-atlas[data-theme="night"] .hk-photo-memory-caption { text-shadow:0 1px 7px #111e2b; }
+.hk-atlas[data-theme="night"] .hk-photo-memory-caption strong { color:#c3ddd4; }
+.hk-atlas[data-theme="night"] .hk-photo-memory-caption small,.hk-atlas[data-theme="night"] .hk-photo-memory-pages { color:#8ba9ad; }
+.hk-atlas[data-theme="night"] .hk-photo-memory-pages button,.hk-atlas[data-theme="night"] .hk-photo-memory-close { color:#abcfc5; }
+.hk-atlas[data-theme="night"] .hk-photo-memory-pages button:hover { background:#9bbfc31c; }
+.city-experience[data-sandbox="true"]:has(.hk-atlas[data-theme="night"]) :is(.city-story,.hk-story-toggle) { color:#d6e3e4; background:var(--hk-paper); border-color:#9bbfc326; box-shadow:0 12px 38px #00000012; }
+.city-experience[data-sandbox="true"]:has(.hk-atlas[data-theme="night"]) :is(.city-header a,.city-story h2,.city-metric strong) { color:#d6e3e4; }
+.city-experience[data-sandbox="true"]:has(.hk-atlas[data-theme="night"]) :is(.city-brand span,.city-header-right a,.city-edition,.city-story-heading,.city-story p,.city-location-line,.city-metric small,.city-data-source,.city-photo-note) { color:#91acb6; }
+.city-experience[data-sandbox="true"]:has(.hk-atlas[data-theme="night"]) :is(.city-metric>span,.city-location-line time,.city-photo-reopen,.city-photo figcaption strong) { color:#b6d1c9; }
+.city-experience[data-sandbox="true"]:has(.hk-atlas[data-theme="night"]) :is(.city-weather-grid,.city-photo) { border-color:#9bbfc326; }
+.city-experience[data-sandbox="true"]:has(.hk-atlas[data-theme="night"]) .city-photo { background:transparent; }
+.city-experience[data-sandbox="true"]:has(.hk-atlas[data-theme="night"]) :is(.city-photo figcaption span,.city-photo figcaption a) { color:#91acb6; }
+.city-experience[data-sandbox="true"]:has(.hk-atlas[data-theme="night"]) :is(button,a):focus-visible { outline-color:#ccdecf; }
+@media(min-width:801px) and (max-height:850px) { .hk-title { top:91px; }.hk-title h1 { font-size:38px; margin:12px 0 8px; }.hk-places { top:220px; padding-top:16px; }.hk-places>button { padding:8px 6px; }.hk-places-heading { padding-bottom:12px; }.hk-list-footer { margin-top:9px; padding-top:10px; }.hk-caption { bottom:139px; }.hk-legend { display:none; }.hk-toolbar { bottom:40px; }.city-experience[data-sandbox="true"] .city-story { max-height:51%; bottom:97px; }.hk-story-toggle { bottom:49px; } }
+@media(max-width:1100px) and (min-width:801px) { .hk-places { width:216px; left:24px; }.hk-title { left:25px; }.hk-place-name small { font-size:8px; }.hk-title h1 { font-size:38px; }.hk-kicker { font-size:8px; letter-spacing:1.8px; }.city-experience[data-sandbox="true"] .city-story { width:219px; right:24px; }.hk-caption { max-width:43%; font-size:11px; }.hk-toolbar { gap:3px; }.hk-toolbar button { min-width:48px; padding:8px 10px; }.hk-city-switch { left:54%; }.city-experience[data-sandbox="true"] .city-brand span,.city-experience[data-sandbox="true"] .city-edition { display:none; } }
+@media(max-width:800px) {
+  .city-experience[data-sandbox="true"] { min-height:620px; }.city-experience[data-sandbox="true"] .city-header { padding:18px 20px; }.city-experience[data-sandbox="true"] .city-header .city-brand { font-size:24px; }
+  .hk-city-switch { top:67px; left:20px; transform:none; padding:3px 5px; }.hk-city-switch button { padding:6px 10px; font-size:10px; }.hk-city-switch button:first-child { padding-left:7px; }
+  .hk-title { top:124px; left:22px; }.hk-kicker { font-size:7px; letter-spacing:1.5px; }.hk-title h1 { font-size:33px; letter-spacing:5px; margin:12px 0 8px; gap:12px; }.hk-title p { font-size:10px; letter-spacing:1px; }.hk-title h1>span { font-size:8px; }
+  .hk-light-switch { top:130px; right:16px; border-radius:9px; padding:3px; }.hk-light-switch button { padding:8px; gap:4px; font-size:9px; }.hk-light-switch button svg { width:12px; }.hk-light-switch .hk-about { padding:8px 5px; }
+  .hk-places { top:237px; left:16px; right:16px; width:auto; display:flex; gap:7px; padding:7px; border-radius:10px; overflow-x:auto; pointer-events:auto; scrollbar-width:none; }.hk-places-heading,.hk-list-caption,.hk-list-footer { display:none; }.hk-places>button { flex:0 0 auto; width:auto; padding:8px; gap:7px; }.hk-index { width:24px; height:27px; font-size:10px; }.hk-place-name strong { font-size:10px; }.hk-place-name small { font-size:7px; }.hk-places>button>svg { display:none; }
+  .hk-compass { top:328px; right:23px; }.hk-compass svg { width:25px; }.hk-zoom { top:402px; right:18px; }.hk-zoom button { width:31px; height:32px; }.hk-place { font-size:9px; padding:4px 2px; }.hk-place-harbour { font-size:11px; }
+  .hk-caption { bottom:144px; max-width:80%; width:330px; font-size:10px; letter-spacing:.5px; }.hk-caption>span { font-size:8px; margin-right:6px; }.hk-gesture { bottom:128px; font-size:9px; }
+  .hk-toolbar { bottom:54px; padding:5px; border-radius:12px; gap:2px; }.hk-toolbar button { min-width:42px; height:50px; padding:7px; gap:6px; }.hk-toolbar button>svg { width:17px; }.hk-toolbar button>span { font-size:9px; }.hk-tool-divider { margin:0 2px; }
+  .hk-legend { display:none; }.hk-attribution { left:18px; bottom:17px; gap:8px; font-size:6px; }.hk-story-toggle { bottom:auto; top:180px; right:16px; padding:9px 10px; font-size:8px; gap:6px; }.hk-story-toggle svg { width:13px; }
+  .hk-photo-memory-card { width:300px; left:15px; bottom:11px; }.hk-photo-memory-media { height:185px; }.hk-photo-memory-caption strong { font-size:13px; }
+  .city-experience[data-sandbox="true"] .city-story { top:306px; bottom:auto; left:auto; right:16px; width:230px; max-height:calc(100% - 486px); padding:15px; }.city-experience[data-sandbox="true"] .city-photo img { height:160px; }
+  .hk-about-panel { top:306px; right:16px; left:16px; width:auto; max-height:calc(100% - 440px); overflow:auto; padding:21px; }.hk-about-panel h2 { font-size:18px; margin:12px 0; }
+}

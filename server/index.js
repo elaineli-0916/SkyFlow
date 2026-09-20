@@ -3,6 +3,7 @@ import { URL } from "node:url";
 import { getAsrHealth, handleAsrTranscribe } from "./routes/asr.js";
 import { handleEarthChat } from "./routes/earthChat.js";
 import { handleTimeAndDateMoon } from "./routes/moon.js";
+import { handleMapTiles, handleMapsConfig } from "./routes/mapTiles.js";
 import { loadEnvFile } from "./services/envService.js";
 import { getConfiguredQwenModel } from "./services/qwenService.js";
 import { send } from "./services/responseService.js";
@@ -20,6 +21,16 @@ const server = http.createServer(async (request, response) => {
   }
 
   try {
+    if (request.method === "GET" && url.pathname === "/api/maps/config") {
+      handleMapsConfig(request, response);
+      return;
+    }
+
+    if (url.pathname === "/api/maps/tiles") {
+      await handleMapTiles(request, response, url);
+      return;
+    }
+
     if (request.method === "POST" && url.pathname === "/api/earth/chat") {
       await handleEarthChat(request, response);
       return;

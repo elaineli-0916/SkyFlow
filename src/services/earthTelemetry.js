@@ -26,7 +26,11 @@ let cachedPosition = null;
 
 export async function getEarthTelemetry(options = {}) {
   const now = new Date();
-  const location = await getLocation(options);
+  const location = options.location ?? await getLocation(options);
+  if (!Number.isFinite(location.latitude) || Math.abs(location.latitude) > 90
+    || !Number.isFinite(location.longitude) || Math.abs(location.longitude) > 180) {
+    throw new Error("Invalid environment coordinates");
+  }
   const meteo = await getOpenMeteoSnapshot(location).catch(() => null);
   const localSolar = getSolarPosition(now, location.latitude, location.longitude);
   const localLunar = {
@@ -198,7 +202,7 @@ async function getTimeAndDateMoonSnapshot(location) {
   url.searchParams.set("country", location.country ?? "");
   url.searchParams.set("latitude", String(location.latitude));
   url.searchParams.set("longitude", String(location.longitude));
-  url.searchParams.set("date", formatLocalDateForRequest(new Date()));
+  url.searchParams.set("date", formatLocalDateForRequest(new Date(), location.timezone));
 
   const response = await fetch(url, { signal: AbortSignal.timeout(9500) });
   if (!response.ok && response.status !== 202) return null;
@@ -207,7 +211,12 @@ async function getTimeAndDateMoonSnapshot(location) {
   return data?.ok ? data : { source: data?.source ?? "timeanddate-unavailable" };
 }
 
-function formatLocalDateForRequest(date) {
+function formatLocalDateForRequest(date, timeZone) {
+  if (timeZone) {
+    const parts = new Intl.DateTimeFormat("en-US", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(date);
+    const values = Object.fromEntries(parts.map(({ type, value }) => [type, value]));
+    return `${values.year}-${values.month}-${values.day}`;
+  }
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");

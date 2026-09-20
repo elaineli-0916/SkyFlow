@@ -1,0 +1,55 @@
+.astronaut-opening { position:absolute; inset:0; pointer-events:none; overflow:hidden; --head-x:0px; --head-y:0px; --hand-roll:0deg; --hand-scale:1; }
+.astronaut-hands { position:absolute; z-index:1; width:100%; max-width:none; height:auto; bottom:-3%; left:0; pointer-events:none; transform:translate(var(--head-x),var(--head-y)) rotate(var(--hand-roll)) scale(var(--hand-scale)); transform-origin:50% 90%; filter:brightness(.72) saturate(.7); transition:transform .08s linear; animation:eva-arrival 2s ease both; }
+.astronaut-visor { position:absolute; inset:-8%; border-radius:48%; box-shadow:inset 0 0 90px 35px #0009,inset 0 0 8px 1px #aecbdd19; pointer-events:none; }
+.astronaut-telemetry { position:absolute; top:112px; left:36px; color:#9eb4c1; font:10px/1.5 "Avenir Next",monospace; letter-spacing:1.7px; display:flex; align-items:center; gap:8px; }
+.astronaut-telemetry>span { width:3px; height:3px; background:#bedcda; border-radius:50%; box-shadow:0 0 8px #c2ddcb66; }
+.astronaut-telemetry small { font-size:8px; letter-spacing:1px; color:#788f9c; }
+.astronaut-controls { position:absolute; z-index:3; left:50%; bottom:47px; transform:translateX(-50%); display:flex; align-items:center; gap:20px; width:max-content; padding:5px 14px; background:#070f17b8; backdrop-filter:blur(16px); border:1px solid #c9e0e21c; border-radius:40px; }
+.astronaut-modes,.astronaut-tools { display:flex; align-items:center; gap:3px; }
+.astronaut-tools { padding-left:13px; border-left:1px solid #b1c7d024; }
+.astronaut-controls button { display:flex; align-items:center; justify-content:center; gap:8px; padding:12px 13px; color:#91a4b1; border:0; background:none; font-size:10px!important; letter-spacing:.5px; white-space:nowrap; transition:color .2s; }
+.astronaut-controls button[aria-pressed="true"] { color:#eee7d1; }
+.astronaut-controls button:hover { color:#fff; }
+.astronaut-tools button { width:34px; padding:10px 6px; }
+.astronaut-controls button { pointer-events:auto; cursor:pointer; }
+.astronaut-controls button:disabled { opacity:.4; cursor:default; }
+.astronaut-controls button:focus-visible,.astronaut-camera-close:focus-visible { outline:1px solid #cfddd3; outline-offset:2px; border-radius:20px; }
+.astronaut-tools .astronaut-tracking-toggle { width:auto; padding-left:12px; margin-left:4px; border-left:1px solid #b1c7d024; }
+.astronaut-tracking-toggle i { width:4px; height:4px; border-radius:50%; background:#71818a; }
+.astronaut-tracking-toggle[aria-pressed="true"] i { background:#bfdfc5; box-shadow:0 0 6px #bfdfc577; }
+.astronaut-camera { position:absolute; z-index:4; right:24px; bottom:118px; width:184px; aspect-ratio:4/3; background:#0a1119; border-radius:7px; overflow:hidden; box-shadow:0 8px 36px #0005; }
+.astronaut-camera video { display:block; width:100%; height:100%; object-fit:cover; transform:scaleX(-1); opacity:.85; }
+.astronaut-hand-overlay { position:absolute; inset:0; width:100%; height:100%; transform:scaleX(-1); pointer-events:none; }
+.astronaut-hand-lock { position:absolute; top:9px; left:9px; display:flex; align-items:center; gap:5px; color:#87969c; font:7px/1 "Avenir Next",monospace; letter-spacing:1px; text-shadow:0 1px 5px #000; }
+.astronaut-hand-lock i { width:4px; height:4px; border-radius:50%; background:#71818a; }
+.astronaut-hand-lock.is-locked { color:#baffcf; }
+.astronaut-hand-lock.is-locked i { background:#61f596; box-shadow:0 0 8px #61f596; }
+.astronaut-camera-close { position:absolute; top:6px; right:6px; display:grid; place-items:center; width:28px; height:28px; border:0; border-radius:50%; color:#f1f0e9; background:#09121bb3; pointer-events:auto; cursor:pointer; }
+.astronaut-camera-caption { position:absolute; bottom:0; left:0; right:0; padding:17px 9px 8px; color:#e3e8e8; background:linear-gradient(transparent,#060d16c9); font-size:9px; letter-spacing:.4px; }
+.astronaut-tracking-status { position:absolute; right:26px; bottom:119px; margin:0; max-width:230px; font-size:10px; line-height:1.6; color:#c2ced3; text-shadow:0 1px 8px #000; }
+.astronaut-tracking-status.is-sr-only { width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
+.astronaut-hint { position:absolute; bottom:16px; left:50%; transform:translateX(-50%); margin:0; white-space:nowrap; font-size:9px; letter-spacing:1px; color:#82929c; }
+.city-experience[data-journey="true"]:has(.journey[data-stage="intro"] .astronaut-opening)>.city-canvas { top:-4%; height:100%; }
+.journey[data-stage="intro"]:has(.astronaut-opening) .journey-copy { bottom:25%; z-index:2; }
+.journey[data-stage="intro"]:has(.astronaut-opening) .journey-hero-line { text-shadow:0 2px 20px #000; }
+.journey[data-stage="intro"]:has(.astronaut-opening) .journey-navigation { bottom:17%; z-index:3; }
+.journey[data-stage="intro"]:has(.astronaut-opening) .journey-music { bottom:18px; z-index:3; }
+.journey[data-stage="intro"]:has(.astronaut-opening) .journey-map-points { display:none; }
+@keyframes eva-arrival { from { opacity:0; translate:0 30px; } to { opacity:1; translate:0 0; } }
+@media(max-width:800px) {
+  .city-experience[data-journey="true"]:has(.journey[data-stage="intro"] .astronaut-opening)>.city-canvas { top:-6%; height:100%; }
+  .astronaut-hands { width:135%; left:-17.5%; bottom:100px; filter:brightness(.55) saturate(.7); }
+  .astronaut-telemetry { top:94px; left:22px; font-size:8px; }
+  .astronaut-controls { bottom:75px; padding:3px 8px; gap:0; flex-direction:column; border-radius:20px; }
+  .astronaut-modes { gap:1px; }
+  .astronaut-modes button { padding:11px 12px; font-size:10px!important; gap:6px; }
+  .astronaut-tools { padding:0; border:0; gap:4px; }
+  .astronaut-tools .astronaut-tracking-toggle { padding-left:9px; margin-left:2px; gap:5px; }
+  .astronaut-camera { right:14px; bottom:190px; width:136px; }
+  .astronaut-tracking-status { right:16px; bottom:188px; max-width:160px; font-size:9px; }
+  .astronaut-hint { bottom:51px; font-size:8px; }
+  .journey[data-stage="intro"]:has(.astronaut-opening) .journey-copy { bottom:29%; padding:0 20px; }
+  .journey[data-stage="intro"]:has(.astronaut-opening) .journey-navigation { bottom:22%; }
+  .journey[data-stage="intro"]:has(.astronaut-opening) .journey-music { bottom:22px; }
+}
+@media(prefers-reduced-motion:reduce) { .astronaut-hands { animation:none; transition:none; } }

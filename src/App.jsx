@@ -9,6 +9,7 @@ import { resolveEarthCommand } from "./services/earthCommandService.js";
 import { geocodePlace, reverseGeocode } from "./services/geocodingService.js";
 import { addSkyMemory, buildPhotoMemoryMarkers, createSkyMemory, loadSkyMemories } from "./services/skyMemoryService.js";
 import { buildNarration } from "./services/narration.js";
+import { getProjectUniverseItem } from "./services/projectUniverseService.js";
 import { useSoundscape } from "./hooks/useSoundscape.js";
 import { formatDegrees, formatLocalClock, formatMinutes, formatPreciseCoordinate, formatUtcOffset } from "./utils/format.js";
 
@@ -29,6 +30,8 @@ const initialSnapshot = {
 
 const askModePrompt = "Ask Earth anything...";
 const askModeDetail = "The globe can answer and move.";
+const homepagePrompt = "Explore Elaine's project universe.";
+const homepageDetail = "Six objects, one interactive map.";
 
 function App() {
   const [snapshot, setSnapshot] = useState(initialSnapshot);
@@ -48,6 +51,8 @@ function App() {
   const [pendingSkyMemory, setPendingSkyMemory] = useState(null);
   const [suggestedObserve, setSuggestedObserve] = useState(null);
   const [manualHighlightFocus, setManualHighlightFocus] = useState(null);
+  const [selectedProjectId, setSelectedProjectId] = useState(null);
+  const [focusedProjectId, setFocusedProjectId] = useState(null);
   const observeGuideTimers = useRef([]);
   const manualHighlightTimer = useRef(null);
   const soundscape = useSoundscape(snapshot, now);
@@ -102,6 +107,10 @@ function App() {
     () => buildPhotoMemoryMarkers(userSkyMemories),
     [userSkyMemories]
   );
+  const selectedProject = useMemo(
+    () => getProjectUniverseItem(selectedProjectId),
+    [selectedProjectId]
+  );
 
   const narration = useMemo(
     () => buildNarration(snapshot, now, narrationIndex),
@@ -141,6 +150,19 @@ function App() {
       };
     }
 
+    if (mode === "homepage") {
+      return {
+        eyebrow: "Project universe",
+        main: selectedProject ? selectedProject.label : "6",
+        unit: selectedProject ? "selected" : "project objects",
+        detail: selectedProject ? selectedProject.summary : homepageDetail,
+        secondary: [
+          { label: "keys", value: "WASD" },
+          { label: "select", value: selectedProject ? "open" : "click" }
+        ]
+      };
+    }
+
     if (mode === "observe") {
       return {
         eyebrow: "Local telemetry",
@@ -164,7 +186,7 @@ function App() {
         { label: "next light", value: nextSunEvent }
       ]
     };
-  }, [mode, narration, nextSunEvent, now, snapshot]);
+  }, [mode, narration, nextSunEvent, now, selectedProject, snapshot]);
 
   return (
     <main className={`relative min-h-screen overflow-hidden bg-void text-slate-100${observeGuide ? ` observe-guide-${observeGuide.phase}` : ""}`}>
@@ -178,6 +200,11 @@ function App() {
         visualCommand={visualCommand}
         photoMarkers={mode === "ask" ? photoMemoryMarkers : []}
         onPhotoPreviewChange={setPhotoPreview}
+        selectedProjectId={selectedProjectId}
+        focusedProjectId={focusedProjectId}
+        onProjectSelect={handleProjectSelect}
+        onProjectFocus={setFocusedProjectId}
+        onProjectReset={resetProjectUniverse}
       />
 
       <div className="pointer-events-none absolute inset-0 orbital-vignette" />
@@ -198,8 +225,8 @@ function App() {
         <section className="companion-copy">
           <div className="glass-strip">
             <p className="mode-kicker">{readouts.eyebrow}</p>
-            <p key={mode === "ask" ? askModePrompt : narration} className="companion-narration mt-3 max-w-[34rem] text-balance font-display text-lg leading-relaxed text-slate-100 sm:text-2xl">
-              {mode === "ask" ? askModePrompt : narration}
+            <p key={mode === "ask" ? askModePrompt : mode === "homepage" ? homepagePrompt : narration} className="companion-narration mt-3 max-w-[34rem] text-balance font-display text-lg leading-relaxed text-slate-100 sm:text-2xl">
+              {mode === "ask" ? askModePrompt : mode === "homepage" ? homepagePrompt : narration}
             </p>
           </div>
         </section>
@@ -263,6 +290,9 @@ function App() {
       </section>
 
       {mode === "ask" && <PhotoMemoryPreviewOverlay preview={photoPreview} />}
+      {mode === "homepage" && selectedProject && (
+        <ProjectUniverseCardOverlay project={selectedProject} onClose={resetProjectUniverse} />
+      )}
       <DataSourceFootnote snapshot={snapshot} />
     </main>
   );
@@ -774,13 +804,44 @@ function App() {
   function setModeFromUser(nextMode) {
     clearObserveGuideTimers();
     setObserveGuide(null);
+    resetProjectUniverse();
     setMode(nextMode);
   }
 
   function setModeFromSystem(nextMode) {
     clearObserveGuideTimers();
     setObserveGuide(null);
+    resetProjectUniverse();
     setMode(nextMode);
+  }
+
+  function handleProjectSelect(projectId) {
+    const project = getProjectUniverseItem(projectId);
+    if (!project) return;
+
+    clearObserveGuideTimers();
+    setObserveGuide(null);
+    setMode("homepage");
+    setSelectedProjectId(project.id);
+    setFocusedProjectId(project.id);
+    setVisualCommand({
+      type: "project-focus",
+      projectId: project.id,
+      cameraPosition: project.focusPosition,
+      lookAt: project.focusLookAt,
+      createdAt: Date.now()
+    });
+  }
+
+  function resetProjectUniverse() {
+    setSelectedProjectId(null);
+    setFocusedProjectId(null);
+    setVisualCommand({
+      type: "project-reset",
+      cameraPosition: [0, 0.72, 5.95],
+      lookAt: [0, 0, 0],
+      createdAt: Date.now()
+    });
   }
 
   function clearObserveGuideTimers() {
@@ -1001,8 +1062,27 @@ function PhotoMemoryPreviewOverlay({ preview }) {
   );
 }
 
+function ProjectUniverseCardOverlay({ project, onClose }) {
+  return (
+    <div className="project-universe-card-shell">
+      <aside className="project-universe-card" style={{ "--project-accent": project.accent }}>
+        <div>
+          <span>{project.category}</span>
+          <button type="button" onClick={onClose} aria-label="Return to project universe">
+            Back
+          </button>
+        </div>
+        <h2>{project.title}</h2>
+        <p>{project.summary}</p>
+        <small>{project.detail}</small>
+      </aside>
+    </div>
+  );
+}
+
 function ModeSwitch({ mode, guide, onChange }) {
   const modes = [
+    { id: "homepage", label: "Universe", icon: <Sparkles size={14} /> },
     { id: "companion", label: "Companion", icon: <Sparkles size={14} /> },
     { id: "ask", label: "Ask", icon: <MessageCircle size={14} /> },
     { id: "observe", label: "Observe", icon: <Telescope size={14} /> }

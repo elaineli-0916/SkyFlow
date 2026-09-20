@@ -106,8 +106,8 @@ select {
   position: relative;
   isolation: isolate;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  min-width: min(34rem, calc(100vw - 2.5rem));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  min-width: min(42rem, calc(100vw - 2.5rem));
   overflow: hidden;
   border: 1px solid rgba(210, 232, 255, 0.16);
   border-radius: 999px;
@@ -123,7 +123,7 @@ select {
   position: absolute;
   inset: 0 auto 0 0;
   z-index: 0;
-  width: 33.333%;
+  width: 25%;
   border-radius: 999px;
   background:
     radial-gradient(circle at 48% 0%, rgba(255, 238, 190, 0.2), transparent 56%),
@@ -132,16 +132,20 @@ select {
   transition: transform 520ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.mode-switch.mode-companion::before {
+.mode-switch.mode-homepage::before {
   transform: translateX(0);
 }
 
-.mode-switch.mode-ask::before {
+.mode-switch.mode-companion::before {
   transform: translateX(100%);
 }
 
-.mode-switch.mode-observe::before {
+.mode-switch.mode-ask::before {
   transform: translateX(200%);
+}
+
+.mode-switch.mode-observe::before {
+  transform: translateX(300%);
 }
 
 .mode-switch.guiding-travel::before,
@@ -965,13 +969,11 @@ select {
   top: var(--preview-y);
   z-index: 34;
   width: var(--preview-width);
-  overflow: hidden;
-  border: 1px solid rgba(255, 238, 190, 0.18);
-  background:
-    linear-gradient(180deg, rgba(14, 21, 31, 0.78), rgba(4, 8, 14, 0.58)),
-    rgba(5, 8, 14, 0.38);
-  box-shadow: 0 24px 82px rgba(0, 0, 0, 0.42), 0 0 46px rgba(255, 220, 151, 0.08);
-  backdrop-filter: blur(16px);
+  overflow: visible;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
   transform: translate3d(0, 0, 0);
   animation: photo-preview-in 160ms ease both;
 }
@@ -980,12 +982,14 @@ select {
   display: block;
   width: 100%;
   aspect-ratio: 16 / 10.5;
-  object-fit: cover;
-  background: rgba(210, 232, 255, 0.08);
+  object-fit: contain;
+  background: transparent;
+  filter: drop-shadow(0 18px 32px rgba(0, 0, 0, 0.5));
 }
 
 .photo-memory-floating-preview div {
-  padding: 0.58rem 0.65rem 0.62rem;
+  padding: 0.7rem 0.1rem 0.62rem;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.88);
 }
 
 .photo-memory-floating-preview strong,
@@ -993,6 +997,150 @@ select {
 .photo-memory-floating-preview small,
 .photo-memory-floating-preview em {
   display: block;
+}
+
+.project-universe-label {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid rgba(210, 232, 255, 0.14);
+  border-radius: 999px;
+  background:
+    linear-gradient(180deg, rgba(10, 18, 30, 0.74), rgba(4, 8, 14, 0.5)),
+    rgba(4, 12, 22, 0.42);
+  padding: 0.28rem 0.48rem;
+  color: rgba(244, 251, 255, 0.86);
+  box-shadow: 0 14px 44px rgba(0, 0, 0, 0.26), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  font-family: IBM Plex Mono, SFMono-Regular, Consolas, monospace;
+  font-size: 0.54rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  cursor: pointer;
+  outline: none;
+}
+
+.project-universe-label:hover,
+.project-universe-label:focus-visible {
+  border-color: rgba(168, 255, 230, 0.44);
+  background:
+    linear-gradient(180deg, rgba(15, 30, 44, 0.84), rgba(5, 13, 20, 0.6)),
+    rgba(8, 24, 34, 0.5);
+  color: rgba(250, 255, 252, 0.96);
+}
+
+.project-universe-label::before {
+  content: "";
+  width: 0.26rem;
+  height: 0.26rem;
+  margin-right: 0.34rem;
+  border-radius: 999px;
+  background: rgba(168, 255, 230, 0.92);
+  box-shadow: 0 0 14px rgba(168, 255, 230, 0.56);
+}
+
+.project-universe-card-shell {
+  pointer-events: none;
+  position: absolute;
+  left: clamp(1.25rem, 4vw, 3rem);
+  bottom: clamp(3.6rem, 7vh, 5rem);
+  z-index: 26;
+  width: min(22rem, calc(100vw - 2rem));
+}
+
+.project-universe-card {
+  pointer-events: auto;
+  width: min(22rem, calc(100vw - 2rem));
+  border: 1px solid color-mix(in srgb, var(--project-accent) 48%, transparent);
+  border-radius: 8px;
+  background:
+    linear-gradient(145deg, rgba(8, 14, 24, 0.9), rgba(4, 7, 13, 0.72)),
+    rgba(2, 4, 10, 0.78);
+  box-shadow:
+    0 28px 94px rgba(0, 0, 0, 0.46),
+    0 0 64px color-mix(in srgb, var(--project-accent) 18%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  padding: 0.9rem;
+  backdrop-filter: blur(18px);
+  transform: translate3d(0, 0, 0);
+  animation: project-card-in 220ms ease both;
+}
+
+.project-universe-card > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.project-universe-card span {
+  min-width: 0;
+  color: color-mix(in srgb, var(--project-accent) 68%, white);
+  font-family: IBM Plex Mono, SFMono-Regular, Consolas, monospace;
+  font-size: 0.57rem;
+  letter-spacing: 0.14em;
+  line-height: 1.35;
+  text-transform: uppercase;
+}
+
+.project-universe-card button {
+  flex: 0 0 auto;
+  min-height: 2rem;
+  border: 1px solid rgba(210, 232, 255, 0.16);
+  border-radius: 999px;
+  background: rgba(210, 232, 255, 0.07);
+  padding: 0 0.7rem;
+  color: rgba(244, 251, 255, 0.86);
+  cursor: pointer;
+  font-family: IBM Plex Mono, SFMono-Regular, Consolas, monospace;
+  font-size: 0.58rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.project-universe-card button:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--project-accent) 72%, white);
+  outline-offset: 2px;
+}
+
+.project-universe-card h2 {
+  margin: 0.72rem 0 0;
+  color: rgba(250, 253, 255, 0.98);
+  font-family: ui-serif, Georgia, Cambria, "Times New Roman", serif;
+  font-size: clamp(1.5rem, 3vw, 2.15rem);
+  font-weight: 500;
+  letter-spacing: 0;
+  line-height: 1.02;
+}
+
+.project-universe-card p {
+  margin: 0.72rem 0 0;
+  color: rgba(222, 236, 246, 0.82);
+  font-size: 0.82rem;
+  line-height: 1.55;
+}
+
+.project-universe-card small {
+  display: block;
+  margin-top: 0.78rem;
+  border-top: 1px solid rgba(210, 232, 255, 0.1);
+  padding-top: 0.68rem;
+  color: rgba(255, 238, 190, 0.68);
+  font-family: ui-serif, Georgia, Cambria, "Times New Roman", serif;
+  font-size: 0.74rem;
+  line-height: 1.45;
+}
+
+@keyframes project-card-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 10px, 0) scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
 }
 
 .photo-memory-floating-preview strong {
@@ -1110,14 +1258,34 @@ select {
   }
 
   .mode-switch {
-    min-width: min(31rem, calc(100vw - 2rem));
+    min-width: min(40rem, calc(100vw - 2rem));
     justify-self: center;
   }
 
   .mode-switch button {
     min-height: 2.65rem;
-    font-size: 0.58rem;
+    font-size: 0.54rem;
     letter-spacing: 0.08em;
+  }
+
+  .project-universe-card-shell {
+    left: 1rem;
+    right: 1rem;
+    bottom: 4.5rem;
+    width: min(19rem, calc(100vw - 1.4rem));
+  }
+
+  .project-universe-card {
+    width: 100%;
+    padding: 0.78rem;
+  }
+
+  .project-universe-card h2 {
+    font-size: 1.35rem;
+  }
+
+  .project-universe-card p {
+    font-size: 0.76rem;
   }
 
   .companion-copy {

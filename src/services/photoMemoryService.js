@@ -15,7 +15,7 @@ export const PHOTO_MEMORY_MARKERS = [
     latitude: 38.989272,
     longitude: -76.940925,
     capturedAt: "2024-04-23 20:24",
-    imageUrl: "/sky-memories/college-park.jpg"
+    imageUrl: "/sky-memories/collegepark-moon.jpg"
   },
   {
     id: "provideniya-2019-11-01-a",
