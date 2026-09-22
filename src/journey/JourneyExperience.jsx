@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ArrowRight, ArrowLeft, Pause, Play, RotateCcw, Music2, VolumeX, X, ArrowUpRight } from "lucide-react";
 import { JOURNEY_STOPS, JOURNEY_MUSIC } from "./journeyData.js";
+import { createNarrativeTimeline, visibleCharactersAt, narrativePlainText } from "./journeyNarratives.js";
 import memories from "./memories.json";
 import LowPolyCityCanvas from "../city/LowPolyCityCanvas.jsx";
 import AstronautOpening from "../astronaut/AstronautOpening.jsx";
@@ -11,8 +12,10 @@ export default function JourneyExperience({camera,onCitySelect}){
   const [points,setPoints]=useState([]),[preview,setPreview]=useState(null),[music,setMusic]=useState(false),[musicError,setMusicError]=useState("");
   const [phase,setPhase]=useState("space"),[progress,setProgress]=useState(0),[autoMemory,setAutoMemory]=useState(null),[scene,setScene]=useState("globe");
   const [sandboxMounted,setSandboxMounted]=useState(false),[sandboxStatus,setSandboxStatus]=useState(null),[journeyError,setJourneyError]=useState("");
+  const [narrative,setNarrative]=useState(null);
   const layer=useRef(null),flight=useRef(null),dwell=useRef(),albumTimer=useRef(),playRef=useRef(false),audio=useRef(null),hideTimer=useRef(),goRef=useRef();
   const sandbox=useRef(null),sandboxResolve=useRef(null),sceneRef=useRef("globe"),arrivedStop=useRef(null);
+  const narrativeFrame=useRef(0),narrativePromise=useRef(null),narrativeComplete=useRef(false),narrativeBox=useRef(null);
   const opening=useRef(true);opening.current=index<0;
   const stop=JOURNEY_STOPS[index],ending=index===JOURNEY_STOPS.length;
   function pause(cancelFlight=true){
@@ -22,7 +25,31 @@ export default function JourneyExperience({camera,onCitySelect}){
   }
   function changeScene(value){sceneRef.current=value;setScene(value);}
   function closePreview(){setPreview(null);setAutoMemory(null);clearInterval(albumTimer.current);clearTimeout(hideTimer.current);}
-  function takeControl(){if(opening.current)return;pause();closePreview();}
+  function takeControl(){if(opening.current)return;pause(arrivedStop.current===null);closePreview();}
+  function typeNarrative(stopId,signal){
+    const timeline=createNarrativeTimeline(stopId);
+    narrativeComplete.current=false;
+    if(!timeline){setNarrative(null);narrativeComplete.current=true;return Promise.resolve();}
+    const reduced=window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    setNarrative({timeline,visible:reduced?timeline.totalCharacters:0,complete:reduced});
+    return new Promise((resolve,reject)=>{
+      let settled=false,previous=reduced?timeline.totalCharacters:-1;
+      const started=performance.now(),duration=reduced?900:timeline.duration;
+      const finish=error=>{
+        if(settled)return;settled=true;cancelAnimationFrame(narrativeFrame.current);narrativeFrame.current=0;signal.removeEventListener("abort",abort);
+        if(error)reject(error);else{narrativeComplete.current=true;resolve();}
+      };
+      const abort=()=>finish(new DOMException("Journey interrupted","AbortError"));
+      const tick=now=>{
+        if(signal.aborted){abort();return;}
+        const elapsed=now-started,visible=reduced?timeline.totalCharacters:visibleCharactersAt(timeline,elapsed),complete=visible===timeline.totalCharacters;
+        if(visible!==previous){previous=visible;setNarrative({timeline,visible,complete});}
+        if(elapsed>=duration)finish();else narrativeFrame.current=requestAnimationFrame(tick);
+      };
+      signal.addEventListener("abort",abort,{once:true});
+      if(signal.aborted)abort();else narrativeFrame.current=requestAnimationFrame(tick);
+    });
+  }
   function waitForSandbox(signal){
     if(sandbox.current)return Promise.resolve(sandbox.current);
     return new Promise((resolve,reject)=>{
@@ -39,8 +66,8 @@ export default function JourneyExperience({camera,onCitySelect}){
     clearTimeout(dwell.current);clearInterval(albumTimer.current);clearTimeout(hideTimer.current);flight.current?.abort();
     camera.stopJourneyMotion();sandbox.current?.stopAutoTour();
     const controller=new AbortController();flight.current=controller;
-    arrivedStop.current=null;
-    setPreview(null);setAutoMemory(null);setJourneyError("");setIndex(next);setBusy(true);setPhase("travel");setProgress(0);layer.current?.setActive(next);
+    arrivedStop.current=null;narrativeComplete.current=false;narrativePromise.current=null;
+    setPreview(null);setAutoMemory(null);setNarrative(null);setJourneyError("");setIndex(next);setBusy(true);setPhase("travel");setProgress(0);layer.current?.setActive(next);
     const nextStop=JOURNEY_STOPS[next],album=memories.filter(m=>m.city===nextStop?.city);
     if(nextStop?.city==="hong-kong")setSandboxMounted(true);
     try{
@@ -52,7 +79,7 @@ export default function JourneyExperience({camera,onCitySelect}){
       const onProgress=t=>{const percent=Math.floor(t*100);if(percent!==previousProgress){previousProgress=percent;layer.current?.setProgress(t);setProgress(t);}};
       if(!nextStop){
         await camera.journeyOverview({signal:controller.signal,ending:next>=JOURNEY_STOPS.length,duration:next<0?3:8,onProgress});
-        setPhase("space");camera.startJourneyDrift(true);
+        setNarrative(null);setPhase("space");camera.startJourneyDrift(true);
         if(next>=JOURNEY_STOPS.length){playRef.current=false;setPlaying(false);}
         return;
       }
@@ -69,14 +96,17 @@ export default function JourneyExperience({camera,onCitySelect}){
       if(controller.signal.aborted)throw new DOMException("Journey interrupted","AbortError");
       if(sceneRef.current==="globe")camera.startJourneyDrift();
       arrivedStop.current=next;
-      setPhase("explore");
+      setPhase("explore");setBusy(false);
       let photoIndex=0;
       setAutoMemory(album[0]?.id??null);
       if(album.length>1)albumTimer.current=setInterval(()=>{
         photoIndex++;
         if(photoIndex<album.length)setAutoMemory(album[photoIndex].id);else clearInterval(albumTimer.current);
       },4500);
-      if(continuous&&playRef.current)dwell.current=setTimeout(()=>goRef.current(next+1,true),Math.max(10000,album.length*4500));
+      const story=typeNarrative(nextStop.id,controller.signal);
+      narrativePromise.current=story;
+      await story;
+      if(continuous&&playRef.current&&flight.current===controller)goRef.current(next+1,true);
     }catch(error){if(flight.current===controller){if(error.name!=="AbortError")setJourneyError("镜头暂时未能抵达，可自由拖拽或再次选择这一站。");pause(false);}}
     finally{if(flight.current===controller)setBusy(false);}
   }
@@ -85,25 +115,27 @@ export default function JourneyExperience({camera,onCitySelect}){
     if(!camera)return;
     layer.current=camera.installJourney(memories,{onPoints:setPoints,onInteract:takeControl});
     // The opening owns its first-person camera until the journey begins.
-    return ()=>{playRef.current=false;clearTimeout(dwell.current);clearInterval(albumTimer.current);clearTimeout(hideTimer.current);flight.current?.abort();camera.stopJourneyMotion();layer.current?.dispose();layer.current=null;};
+    return ()=>{playRef.current=false;clearTimeout(dwell.current);clearInterval(albumTimer.current);clearTimeout(hideTimer.current);cancelAnimationFrame(narrativeFrame.current);flight.current?.abort();camera.stopJourneyMotion();layer.current?.dispose();layer.current=null;};
   },[camera]);
+  useEffect(()=>{const box=narrativeBox.current;if(box&&narrative?.visible)box.scrollTop=box.scrollHeight;},[narrative?.visible]);
   useEffect(()=>{const player=audio.current;return ()=>player?.pause();},[]);
   useEffect(()=>{const close=e=>{if(e.key==="Escape"&&!opening.current){closePreview();pause();}};window.addEventListener("keydown",close);return ()=>window.removeEventListener("keydown",close);},[camera]);
   function manual(next){pause();go(next);}
   function togglePlay(){
-    if(playing){pause(true);return;}
+    if(playing){pause(arrivedStop.current===null);return;}
     // Start audio inside the click gesture; waiting for the camera would lose
     // browser autoplay permission. Resuming a paused tour respects music off.
     if(index<0||ending)playMusic();
     playRef.current=true;setPlaying(true);
     if(index>=0&&!ending&&arrivedStop.current===index){
       if(sceneRef.current==="hong-kong")sandbox.current?.startAutoTour();else camera.startJourneyDrift();
-      dwell.current=setTimeout(()=>goRef.current(index+1,true),6000);
+      const proceed=()=>{if(playRef.current&&arrivedStop.current===index)dwell.current=setTimeout(()=>goRef.current(index+1,true),narrativeComplete.current?1200:0);};
+      if(narrativeComplete.current)proceed();else narrativePromise.current?.then(proceed).catch(()=>{});
     }else go(index<0||ending?0:index,true);
   }
   function openMemory(id,event){
     const memory=memories.find(m=>m.id===id);if(!memory)return;
-    clearTimeout(hideTimer.current);pause(true);
+    clearTimeout(hideTimer.current);pause(arrivedStop.current===null);
     setAutoMemory(null);
     const rect=event.currentTarget.getBoundingClientRect();setPreview({memory,anchor:{x:rect.x+rect.width/2,y:rect.y+rect.height/2}});
   }
@@ -124,7 +156,7 @@ export default function JourneyExperience({camera,onCitySelect}){
   return <section className="journey" data-stage={index<0?"intro":ending?"outro":"chapter"} data-phase={phase} data-scene={scene} aria-label="个人旅程 · 仍然抬头">
     {index<0&&<AstronautOpening camera={camera} active={!busy}/>}
     {sandboxMounted&&<div className="journey-sandbox" aria-hidden={scene!=="hong-kong"} inert={scene!=="hong-kong"?"":undefined}>
-      <LowPolyCityCanvas embedded active={scene==="hong-kong"} onReady={api=>{sandbox.current=api;if(api)sandboxResolve.current?.(api);}} onStatus={setSandboxStatus} onCitySelect={onCitySelect} onReturn={()=>manual(index)} onInteract={()=>pause()} autoMemoryId={autoMemory}/>
+      <LowPolyCityCanvas embedded active={scene==="hong-kong"} onReady={api=>{sandbox.current=api;if(api)sandboxResolve.current?.(api);}} onStatus={setSandboxStatus} onCitySelect={onCitySelect} onReturn={()=>manual(index)} onInteract={()=>pause(arrivedStop.current===null)} autoMemoryId={autoMemory}/>
     </div>}
     <div className="journey-copy" key={index}>
       {index<0?<h1 className="journey-hero-line">这个人一直在迁徙，也一直在观察世界。</h1>:!ending&&<>
@@ -133,6 +165,7 @@ export default function JourneyExperience({camera,onCitySelect}){
         {stop.city==="hong-kong"&&<button className="journey-city-entry" onClick={()=>{if(scene==="hong-kong"){pause();changeScene("globe");}else manual(index);}}>{scene==="hong-kong"?"查看香港卫星地图":"走进香港沙盘"} <ArrowRight size={14}/></button>}
       </>}
     </div>
+    {!ending&&index>=0&&narrative&&<JourneyNarrative state={narrative} boxRef={narrativeBox}/>}
     <div className="journey-map-points" hidden={scene!=="globe"}>
       {visible.map((p,i)=>{
         const memory=memories.find(m=>m.id===p.id),city=JOURNEY_STOPS.find(s=>s.city===p.city);
@@ -156,6 +189,25 @@ export default function JourneyExperience({camera,onCitySelect}){
     <audio ref={audio} src={JOURNEY_MUSIC} preload="metadata" loop onPlay={()=>setMusic(true)} onPause={()=>setMusic(false)} onError={()=>{setMusic(false);setMusicError("音乐暂时无法加载。");}}/>
   </section>;
 }
+
+function JourneyNarrative({state,boxRef}){
+  const {timeline,visible,complete}=state;
+  let cursorSegment=-1;
+  for(let i=0;i<timeline.segments.length;i++)if(visible>timeline.segments[i].start)cursorSegment=i;
+  return <aside className="journey-narrative" ref={boxRef} data-complete={complete} aria-label="此地的旅程文字">
+    <span className="journey-narrative-full">{narrativePlainText(timeline.stopId)}</span>
+    <div aria-hidden="true">{timeline.segments.map((segment,index)=>{
+      const amount=Math.max(0,Math.min(segment.text.length,visible-segment.start));
+      if(!amount)return null;
+      const content=segment.text.slice(0,amount),cursor=!complete&&index===cursorSegment;
+      return segment.kind==="title"
+        ? <h2 key={`${segment.chapter}-${index}`}>{renderLines(content)}{cursor&&<i/>}</h2>
+        : <p key={`${segment.chapter}-${index}`} data-emphasis={segment.emphasis||undefined} data-compact={segment.compact||undefined}>{renderLines(content)}{cursor&&<i/>}</p>;
+    })}</div>
+  </aside>;
+}
+
+function renderLines(text){return text.split("\n").map((line,index)=><span key={index}>{index>0&&<br/>}{line}</span>);}
 
 function MemoryCard({memory,anchor,onEnter,onLeave,onClose,onSelect}){
   const [failed,setFailed]=useState(false),album=memories.filter(m=>m.city===memory.city),position=album.findIndex(m=>m.id===memory.id);
